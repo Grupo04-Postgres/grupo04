@@ -48,8 +48,8 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbSistema')
     EXEC('CREATE SCHEMA dbSistema');
 GO
 
--- La instrucciÛn CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
--- Por eso, se usa EXEC para ejecutar una cadena din·mica que contiene la instrucciÛn CREATE SCHEMA.
+-- La instrucci√≥n CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
+-- Por eso, se usa EXEC para ejecutar una cadena din√°mica que contiene la instrucci√≥n CREATE SCHEMA.
 
 ---------------------------------------------------------------------
 -- Borrar tablas si ya existen
@@ -84,19 +84,19 @@ BEGIN
     -- Verificar que tenga la longitud correcta (11 caracteres)
     IF LEN(@cuil) = 11
     BEGIN
-        -- Extraer DNI y el dÌgito verificador
+        -- Extraer DNI y el d√≠gito verificador
         SET @dni = CAST(SUBSTRING(@cuil, 3, 8) AS INT);
         SET @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT);
 
-        -- Realizar c·lculo del dÌgito verificador
+        -- Realizar c√°lculo del d√≠gito verificador
         DECLARE @peso INT;
 
-        -- Array de pesos seg˙n la posiciÛn
+        -- Array de pesos seg√∫n la posici√≥n
         DECLARE @pesos TABLE (pos INT, peso INT);
         INSERT INTO @pesos (pos, peso) VALUES
         (1, 5), (2, 4), (3, 3), (4, 2), (5, 7), (6, 6), (7, 5), (8, 4);
 
-        -- Sumar la multiplicaciÛn de los dÌgitos del CUIL por los pesos
+        -- Sumar la multiplicaci√≥n de los d√≠gitos del CUIL por los pesos
         SET @i = 1;
         WHILE @i <= 8
         BEGIN
@@ -105,14 +105,14 @@ BEGIN
             SET @i = @i + 1;
         END
 
-        -- Calcular el dÌgito verificador
+        -- Calcular el d√≠gito verificador
         SET @suma = @suma % 11;
         SET @digito_verificador = 11 - @suma;
 
-        -- Verificar que el dÌgito calculado sea igual al dÌgito verificador del CUIL
+        -- Verificar que el d√≠gito calculado sea igual al d√≠gito verificador del CUIL
         IF @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT)
         BEGIN
-            SET @resultado = 1;  -- CUIL v·lido
+            SET @resultado = 1;  -- CUIL v√°lido
         END
     END
 
@@ -169,7 +169,7 @@ CREATE TABLE dbEmpleado.Empleado (
 	fechaNacimiento date NOT NULL,
 	domicilio VARCHAR(30) NOT NULL,
 	telefono CHAR(10) NOT NULL,
-	turno CHAR NOT NULL CHECK(turno IN ('M','T','N')),  -- MaÒana-Tarde-Noche
+	turno CHAR NOT NULL CHECK(turno IN ('M','T','N')),  -- Ma√±ana-Tarde-Noche
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,
 	idSucursal INT,
