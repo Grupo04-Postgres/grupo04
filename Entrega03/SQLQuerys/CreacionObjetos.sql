@@ -1,35 +1,68 @@
 ---------------------------------------------------------------------
--- Crear base de datos
+-- USE master
+-- DROP DATABASE Com1353G04
 
-CREATE DATABASE Com1353G04 COLLATE Modern_Spanish_CI_AS
+---------------------------------------------------------------------
+-- Este script se puede ejecutar de una todas las veces que quieras
+
+---------------------------------------------------------------------
+-- Crear base de datos si no existe
+
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'Com1353G04')
+BEGIN
+    CREATE DATABASE Com1353G04 COLLATE Modern_Spanish_CI_AS
+END
 GO
 
 ---------------------------------------------------------------------
--- Crear schemas
+-- Crear schemas si no existen
 
 USE Com1353G04
 GO
 
-CREATE SCHEMA dbVenta
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbVenta')
+    EXEC('CREATE SCHEMA dbVenta');
 GO
 
-CREATE SCHEMA dbProducto
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbProducto')
+    EXEC('CREATE SCHEMA dbProducto');
 GO
 
-CREATE SCHEMA dbEmpleado
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbEmpleado')
+    EXEC('CREATE SCHEMA dbEmpleado');
 GO
 
-CREATE SCHEMA dbCliente
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbCliente')
+    EXEC('CREATE SCHEMA dbCliente');
 GO
 
-CREATE SCHEMA dbSucursal
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbSucursal')
+    EXEC('CREATE SCHEMA dbSucursal');
 GO
 
-CREATE SCHEMA dbReporte
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbReporte')
+    EXEC('CREATE SCHEMA dbReporte');
+GO
+
+-- La instrucción CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
+-- Por eso, se usa EXEC para ejecutar una cadena dinámica que contiene la instrucción CREATE SCHEMA.
+
+---------------------------------------------------------------------
+-- Borrar tablas si ya existen
+
+IF OBJECT_ID('dbVenta.DetalleVenta', 'U') IS NOT NULL DROP TABLE dbVenta.DetalleVenta
+IF OBJECT_ID('dbVenta.Venta', 'U') IS NOT NULL DROP TABLE dbVenta.Venta
+IF OBJECT_ID('dbVenta.MetodoPago', 'U') IS NOT NULL DROP TABLE dbVenta.MetodoPago
+IF OBJECT_ID('dbVenta.Factura', 'U') IS NOT NULL DROP TABLE dbVenta.Factura
+IF OBJECT_ID('dbEmpleado.Empleado', 'U') IS NOT NULL DROP TABLE dbEmpleado.Empleado
+IF OBJECT_ID('dbSucursal.Sucursal', 'U') IS NOT NULL DROP TABLE dbSucursal.Sucursal
+IF OBJECT_ID('dbCliente.Cliente', 'U') IS NOT NULL DROP TABLE dbCliente.Cliente
+IF OBJECT_ID('dbProducto.Producto', 'U') IS NOT NULL DROP TABLE dbProducto.Producto
+IF OBJECT_ID('dbProducto.LineaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.LineaProducto
 GO
 
 ---------------------------------------------------------------------
--- Crear tablas  (falta comprobar que no existan las tablas, si existen nos salteamos la creacion o las borramos)
+-- Crear tablas
 
 CREATE TABLE dbProducto.LineaProducto (
 	idLineaProducto INT IDENTITY(1,1) PRIMARY KEY,
@@ -53,7 +86,7 @@ CREATE TABLE dbCliente.Cliente (
 	apellido VARCHAR(30) NOT NULL,
 	telefono CHAR(10) NOT NULL,
 	genero CHAR NOT NULL CHECK(genero IN ('F','M')),  -- Female-Male
-	tipoCliente CHAR NOT NULL CHECK(genero IN ('N','M'))  -- Normal-Member
+	tipoCliente CHAR NOT NULL CHECK(tipoCliente IN ('N','M'))  -- Normal-Member
 )
 GO
 
@@ -113,7 +146,7 @@ CREATE TABLE dbVenta.Venta (
 GO
 
 CREATE TABLE dbVenta.DetalleVenta (
-	idDetalleVenta INT IDENTITY(1,1),
+	idDetalleVenta INT,   -- En el SP para insertar tenemos que poner que sea incremental para cada idVenta
 	idVenta INT,
 	idProducto INT,
 	cantidad INT NOT NULL,
