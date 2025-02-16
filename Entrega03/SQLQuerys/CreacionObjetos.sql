@@ -44,6 +44,10 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbReporte')
     EXEC('CREATE SCHEMA dbReporte');
 GO
 
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbSistema')
+    EXEC('CREATE SCHEMA dbSistema');
+GO
+
 -- La instrucción CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
 -- Por eso, se usa EXEC para ejecutar una cadena dinámica que contiene la instrucción CREATE SCHEMA.
 
@@ -61,6 +65,63 @@ IF OBJECT_ID('dbProducto.Producto', 'U') IS NOT NULL DROP TABLE dbProducto.Produ
 IF OBJECT_ID('dbProducto.LineaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.LineaProducto
 GO
 
+
+---------------------------------------------------------------------
+-- Crear funciones de validaciones complejas
+
+-- Validar CUIL
+CREATE OR ALTER FUNCTION dbSistema.fnValidarCUIL (@cuil CHAR(11))
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @resultado BIT = 0;
+    DECLARE @dni INT;
+    DECLARE @digito_verificador INT;
+    DECLARE @valido BIT = 1;
+    DECLARE @suma INT = 0;
+    DECLARE @i INT;
+
+    -- Verificar que tenga la longitud correcta (11 caracteres)
+    IF LEN(@cuil) = 11
+    BEGIN
+        -- Extraer DNI y el dígito verificador
+        SET @dni = CAST(SUBSTRING(@cuil, 3, 8) AS INT);
+        SET @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT);
+
+        -- Realizar cálculo del dígito verificador
+        DECLARE @peso INT;
+
+        -- Array de pesos según la posición
+        DECLARE @pesos TABLE (pos INT, peso INT);
+        INSERT INTO @pesos (pos, peso) VALUES
+        (1, 5), (2, 4), (3, 3), (4, 2), (5, 7), (6, 6), (7, 5), (8, 4);
+
+        -- Sumar la multiplicación de los dígitos del CUIL por los pesos
+        SET @i = 1;
+        WHILE @i <= 8
+        BEGIN
+            SET @peso = (SELECT peso FROM @pesos WHERE pos = @i);
+            SET @suma = @suma + (CAST(SUBSTRING(@cuil, @i + 2, 1) AS INT) * @peso);
+            SET @i = @i + 1;
+        END
+
+        -- Calcular el dígito verificador
+        SET @suma = @suma % 11;
+        SET @digito_verificador = 11 - @suma;
+
+        -- Verificar que el dígito calculado sea igual al dígito verificador del CUIL
+        IF @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT)
+        BEGIN
+            SET @resultado = 1;  -- CUIL válido
+        END
+    END
+
+    RETURN @resultado;
+END;
+GO
+
+
+
 ---------------------------------------------------------------------
 -- Crear tablas
 
@@ -73,7 +134,7 @@ GO
 CREATE TABLE dbProducto.Producto (
 	idProducto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(30) NOT NULL,
-	precioUnitario DECIMAL NoT NULL,
+	precioUnitario DECIMAL NoT NULL CHECK(precioUnitario > 0),
 	idLineaProducto INT,
 	FOREIGN KEY (idLineaProducto) REFERENCES dbProducto.LineaProducto(idLineaProducto)
 )
@@ -86,7 +147,8 @@ CREATE TABLE dbCliente.Cliente (
 	apellido VARCHAR(30) NOT NULL,
 	telefono CHAR(10) NOT NULL,
 	genero CHAR NOT NULL CHECK(genero IN ('F','M')),  -- Female-Male
-	tipoCliente CHAR NOT NULL CHECK(tipoCliente IN ('N','M'))  -- Normal-Member
+	tipoCliente CHAR NOT NULL CHECK(tipoCliente IN ('N','M')),  -- Normal-Member
+	CONSTRAINT chk_CUIL_Valido CHECK (dbSistema.fnValidarCUIL(cuil) = 1)
 )
 GO
 
@@ -111,7 +173,8 @@ CREATE TABLE dbEmpleado.Empleado (
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,
 	idSucursal INT,
-	FOREIGN KEY (idSucursal) REFERENCES dbSucursal.Sucursal(idSucursal)
+	FOREIGN KEY (idSucursal) REFERENCES dbSucursal.Sucursal(idSucursal),
+	CONSTRAINT chk_CUIL_Valido CHECK (dbSistema.fnValidarCUIL(cuil) = 1)
 )
 GO
 
@@ -149,8 +212,8 @@ CREATE TABLE dbVenta.DetalleVenta (
 	idDetalleVenta INT,   -- En el SP para insertar tenemos que poner que sea incremental para cada idVenta
 	idVenta INT,
 	idProducto INT,
-	cantidad INT NOT NULL,
-	precioUnitarioAlMomentoDeLaVenta DECIMAL NOT NULL,
+	cantidad INT NOT NULL CHECK (cantidad > 0),
+	precioUnitarioAlMomentoDeLaVenta DECIMAL NOT NULL CHECK (precioUnitarioAlMomentoDeLaVenta > 0),
 	subtotal DECIMAL NOT NULL,
 	PRIMARY KEY (idDetalleVenta, idVenta),
 	FOREIGN KEY (idVenta) REFERENCES dbVenta.Venta(idVenta),
