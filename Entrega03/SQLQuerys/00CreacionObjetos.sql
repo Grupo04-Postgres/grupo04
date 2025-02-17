@@ -1,4 +1,18 @@
 ---------------------------------------------------------------------
+-- Fecha de entrega
+-- Materia: Base de Datos Aplicada
+-- Comision: 1353
+-- Numero de grupo: 04
+-- Integrantes:
+   -- Brenda Schereik 45128557
+   --
+   --
+   --
+
+---------------------------------------------------------------------
+-- Cree la base de datos, entidades y relaciones. Incluya restricciones y claves.
+
+---------------------------------------------------------------------
 -- USE master
 -- DROP DATABASE Com1353G04
 
@@ -48,8 +62,8 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbSistema')
     EXEC('CREATE SCHEMA dbSistema');
 GO
 
--- La instrucci√≥n CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
--- Por eso, se usa EXEC para ejecutar una cadena din√°mica que contiene la instrucci√≥n CREATE SCHEMA.
+-- La instrucciÛn CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
+-- Por eso, se usa EXEC para ejecutar una cadena din·mica que contiene la instrucciÛn CREATE SCHEMA.
 
 ---------------------------------------------------------------------
 -- Borrar tablas si ya existen
@@ -84,19 +98,19 @@ BEGIN
     -- Verificar que tenga la longitud correcta (11 caracteres)
     IF LEN(@cuil) = 11
     BEGIN
-        -- Extraer DNI y el d√≠gito verificador
+        -- Extraer DNI y el dÌgito verificador
         SET @dni = CAST(SUBSTRING(@cuil, 3, 8) AS INT);
         SET @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT);
 
-        -- Realizar c√°lculo del d√≠gito verificador
+        -- Realizar c·lculo del dÌgito verificador
         DECLARE @peso INT;
 
-        -- Array de pesos seg√∫n la posici√≥n
+        -- Array de pesos seg˙n la posiciÛn
         DECLARE @pesos TABLE (pos INT, peso INT);
         INSERT INTO @pesos (pos, peso) VALUES
         (1, 5), (2, 4), (3, 3), (4, 2), (5, 7), (6, 6), (7, 5), (8, 4);
 
-        -- Sumar la multiplicaci√≥n de los d√≠gitos del CUIL por los pesos
+        -- Sumar la multiplicaciÛn de los dÌgitos del CUIL por los pesos
         SET @i = 1;
         WHILE @i <= 8
         BEGIN
@@ -105,14 +119,14 @@ BEGIN
             SET @i = @i + 1;
         END
 
-        -- Calcular el d√≠gito verificador
+        -- Calcular el dÌgito verificador
         SET @suma = @suma % 11;
         SET @digito_verificador = 11 - @suma;
 
-        -- Verificar que el d√≠gito calculado sea igual al d√≠gito verificador del CUIL
+        -- Verificar que el dÌgito calculado sea igual al dÌgito verificador del CUIL
         IF @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT)
         BEGIN
-            SET @resultado = 1;  -- CUIL v√°lido
+            SET @resultado = 1;  -- CUIL v·lido
         END
     END
 
@@ -121,43 +135,51 @@ END;
 GO
 
 
-
 ---------------------------------------------------------------------
 -- Crear tablas
 
+-- HAY QUE CHEQUEAR EL TAMA—O DEL VARCHAR DE LOS ATRIBUTOS
+-- VER SI DEJAMOS VARCHAR o CAMBIAMOS A CHAR, NCHAR o NVARCHAR
+
 CREATE TABLE dbProducto.LineaProducto (
 	idLineaProducto INT IDENTITY(1,1) PRIMARY KEY,
-	nombre VARCHAR(30) NOT NULL
+	nombre VARCHAR(50) NOT NULL
 )
 GO
 
 CREATE TABLE dbProducto.Producto (
 	idProducto INT IDENTITY(1,1) PRIMARY KEY,
-	nombre VARCHAR(30) NOT NULL,
-	precioUnitario DECIMAL NoT NULL CHECK(precioUnitario > 0),
-	idLineaProducto INT,
-	FOREIGN KEY (idLineaProducto) REFERENCES dbProducto.LineaProducto(idLineaProducto)
+	nombre VARCHAR(50) NOT NULL,
+	precio DECIMAL(10,2) NOT NULL CHECK(precio > 0),     -- Tiene que estar en pesos
+	precioReferencia DECIMAL(10,2), -- catalogo.csv
+	unidadReferencia char(2),		-- catalogo.csv
+	fecha date,						-- catalogo.csv
+	cantidadUnitaria varchar(50),   -- productos_importados.xlsx
+	proveedor VARCHAR(50),			-- productos_importados.xlsx
+	categoria varchar(50),			-- productos_importados.xlsx y catalogo.csv
+	idLineaProducto INT NOT NULL REFERENCES dbProducto.LineaProducto(idLineaProducto)
 )
 GO
 
 CREATE TABLE dbCliente.Cliente (
 	idCliente INT IDENTITY(1,1) PRIMARY KEY,
 	cuil CHAR(11) NOT NULL UNIQUE,
-	nombre VARCHAR(30) NOT NULL,
-	apellido VARCHAR(30) NOT NULL,
+	nombre VARCHAR(50) NOT NULL,
+	apellido VARCHAR(50) NOT NULL,
 	telefono CHAR(10) NOT NULL,
-	genero CHAR NOT NULL CHECK(genero IN ('F','M')),  -- Female-Male
-	tipoCliente CHAR NOT NULL CHECK(tipoCliente IN ('N','M')),  -- Normal-Member
-	CONSTRAINT chk_CUIL_Valido CHECK (dbSistema.fnValidarCUIL(cuil) = 1)
+	genero CHAR(6) NOT NULL CHECK(genero IN ('Female','Male')),  
+	tipoCliente CHAR(6) NOT NULL CHECK(tipoCliente IN ('Normal','Member')),  
+	CONSTRAINT CK_CUIL_Valido CHECK (dbSistema.fnValidarCUIL(cuil) = 1)
 )
 GO
 
 CREATE TABLE dbSucursal.Sucursal (
 	idSucursal INT IDENTITY(1,1) PRIMARY KEY,
-	ciudad VARCHAR(30) NOT NULL,
-	sucursal VARCHAR(30) NOT NULL,
-	direccion VARCHAR(30) NOT NULL,
-	telefono CHAR(10) NOT NULL
+	ciudad VARCHAR(50) NOT NULL,
+	sucursal VARCHAR(50) NOT NULL,
+	direccion VARCHAR(100) NOT NULL,
+	telefono CHAR(10) NOT NULL,
+	horario CHAR(50) NOT NULL
 )
 GO
 
@@ -166,15 +188,15 @@ CREATE TABLE dbEmpleado.Empleado (
 	cuil CHAR(11) NOT NULL UNIQUE,
 	nombre VARCHAR(30) NOT NULL,
 	apellido VARCHAR(30) NOT NULL,
-	fechaNacimiento date NOT NULL,
-	domicilio VARCHAR(30) NOT NULL,
+	direccion VARCHAR(30) NOT NULL,
 	telefono CHAR(10) NOT NULL,
-	turno CHAR NOT NULL CHECK(turno IN ('M','T','N')),  -- Ma√±ana-Tarde-Noche
+	emailPersonal varchar(30) NOT NULL,
+	emailEmpresa varchar(30) NOT NULL,
+	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- MaÒana-Tarde-JornadaCompleta
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,
-	idSucursal INT,
-	FOREIGN KEY (idSucursal) REFERENCES dbSucursal.Sucursal(idSucursal),
-	CONSTRAINT chk_CUIL_Valido CHECK (dbSistema.fnValidarCUIL(cuil) = 1)
+	idSucursal INT NOT NULL REFERENCES dbSucursal.Sucursal(idSucursal),
+	CONSTRAINT CK_CUIL_Valido CHECK (dbSistema.fnValidarCUIL(cuil) = 1)
 )
 GO
 
@@ -184,13 +206,13 @@ CREATE TABLE dbVenta.Factura (
 	estado CHAR NOT NULL CHECK(estado IN ('P','C')),  -- Pagada-Cancelada,
 	fecha DATE NOT NULL,
 	hora TIME NOT NULL,
-	total DECIMAL NOT NULL
+	total DECIMAL(10,2) NOT NULL
 )
 GO
 
 CREATE TABLE dbVenta.MetodoPago (
 	idMetodoPago INT IDENTITY(1,1) PRIMARY KEY,
-	nombre VARCHAR(30) NOT NULL
+	nombre VARCHAR(30) NOT NULL -- Credit card (Tarjeta de credito) - Cash (Efectivo) - Ewallet (Billetera Electronica)
 )
 GO
 
@@ -198,25 +220,21 @@ CREATE TABLE dbVenta.Venta (
 	idVenta INT IDENTITY(1,1) PRIMARY KEY,
 	fecha DATE NOT NULL,
 	hora TIME NOT NULL,
-	legajoEmpleado INT,
-	idCliente INT,
-	idFactura INT,
-	idMetodoPago INT,
-	FOREIGN KEY (idCliente) REFERENCES dbCliente.Cliente(idCliente),
-	FOREIGN KEY (idFactura) REFERENCES dbVenta.Factura(idFactura),
-	FOREIGN KEY (idMetodoPago) REFERENCES dbVenta.MetodoPago(idMetodoPago)
+	identificadorPago varchar(30),
+	legajoEmpleado INT NOT NULL REFERENCES dbEmpleado.Empleado(legajoEmpleado),
+	idCliente INT NOT NULL REFERENCES dbCliente.Cliente(idCliente),
+	idFactura INT NOT NULL REFERENCES dbVenta.Factura(idFactura),
+	idMetodoPago INT NOT NULL REFERENCES dbVenta.MetodoPago(idMetodoPago)
 )
 GO
 
 CREATE TABLE dbVenta.DetalleVenta (
 	idDetalleVenta INT,   -- En el SP para insertar tenemos que poner que sea incremental para cada idVenta
-	idVenta INT,
-	idProducto INT,
+	idVenta INT NOT NULL REFERENCES dbVenta.Venta(idVenta),
+	idProducto INT NOT NULL REFERENCES dbProducto.Producto(idProducto),
 	cantidad INT NOT NULL CHECK (cantidad > 0),
-	precioUnitarioAlMomentoDeLaVenta DECIMAL NOT NULL CHECK (precioUnitarioAlMomentoDeLaVenta > 0),
-	subtotal DECIMAL NOT NULL,
-	PRIMARY KEY (idDetalleVenta, idVenta),
-	FOREIGN KEY (idVenta) REFERENCES dbVenta.Venta(idVenta),
-	FOREIGN KEY (idProducto) REFERENCES dbProducto.Producto(idProducto)
+	precioUnitarioAlMomentoDeLaVenta DECIMAL(10,2) NOT NULL CHECK (precioUnitarioAlMomentoDeLaVenta > 0),
+	subtotal DECIMAL(10,2) NOT NULL,
+	PRIMARY KEY CLUSTERED (idVenta, idDetalleVenta)
 )
 GO
