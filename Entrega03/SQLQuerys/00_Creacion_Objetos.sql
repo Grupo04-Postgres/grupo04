@@ -62,8 +62,8 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbSistema')
     EXEC('CREATE SCHEMA dbSistema');
 GO
 
--- La instrucción CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
--- Por eso, se usa EXEC para ejecutar una cadena dinámica que contiene la instrucción CREATE SCHEMA.
+-- La instrucciÃ³n CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
+-- Por eso, se usa EXEC para ejecutar una cadena dinÃ¡mica que contiene la instrucciÃ³n CREATE SCHEMA.
 
 ---------------------------------------------------------------------
 -- Borrar tablas si ya existen
@@ -84,7 +84,7 @@ GO
 ---------------------------------------------------------------------
 -- Crear tablas
 
--- HAY QUE CHEQUEAR EL TAMAÑO DEL VARCHAR DE LOS ATRIBUTOS
+-- HAY QUE CHEQUEAR EL TAMAÃ‘O DEL VARCHAR DE LOS ATRIBUTOS
 -- VER SI DEJAMOS VARCHAR o CAMBIAMOS A CHAR, NCHAR o NVARCHAR
 -- FALTA LO DE NOTA CREDITO
 -- VER SI PONEMOS ON DELETE CASCADE
@@ -150,7 +150,7 @@ CREATE TABLE dbEmpleado.Empleado (
 	telefono CHAR(10) NOT NULL,
 	emailPersonal varchar(30) NOT NULL,
 	emailEmpresa varchar(30) NOT NULL,
-	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- Mañana-Tarde-JornadaCompleta
+	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- MaÃ±ana-Tarde-JornadaCompleta
 	cargo varchar(30) NOT NULL,
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,
