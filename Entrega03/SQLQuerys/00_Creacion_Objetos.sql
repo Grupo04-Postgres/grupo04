@@ -113,7 +113,6 @@ CREATE TABLE dbProducto.Producto (
 	unidadReferencia char(2),		-- catalogo.csv
 	fecha date,						-- catalogo.csv
 	cantidadUnitaria varchar(50),   -- productos_importados.xlsx
-	proveedor VARCHAR(50),			-- productos_importados.xlsx
 	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto),
 	estado BIT NOT NULL
 )
