@@ -76,6 +76,7 @@ IF OBJECT_ID('dbEmpleado.Empleado', 'U') IS NOT NULL DROP TABLE dbEmpleado.Emple
 IF OBJECT_ID('dbSucursal.Sucursal', 'U') IS NOT NULL DROP TABLE dbSucursal.Sucursal
 IF OBJECT_ID('dbCliente.Cliente', 'U') IS NOT NULL DROP TABLE dbCliente.Cliente
 IF OBJECT_ID('dbProducto.Producto', 'U') IS NOT NULL DROP TABLE dbProducto.Producto
+IF OBJECT_ID('dbProducto.CategoriaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.CategoriaProducto
 IF OBJECT_ID('dbProducto.LineaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.LineaProducto
 GO
 
@@ -140,17 +141,21 @@ GO
 
 -- HAY QUE CHEQUEAR EL TAMAÑO DEL VARCHAR DE LOS ATRIBUTOS
 -- VER SI DEJAMOS VARCHAR o CAMBIAMOS A CHAR, NCHAR o NVARCHAR
+-- FALTA LO DE NOTA CREDITO
+-- VER SI PONEMOS ON DELETE CASCADE
 
 CREATE TABLE dbProducto.LineaProducto (
 	idLineaProducto INT IDENTITY(1,1) PRIMARY KEY,
-	nombre VARCHAR(50) NOT NULL
+	nombre VARCHAR(50) NOT NULL,
+	estado BIT NOT NULL
 )
 GO
 
 CREATE TABLE dbProducto.CategoriaProducto (
 	idCategoriaProducto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(50) NOT NULL,
-	idLineaProducto INT NOT NULL REFERENCES dbProducto.LineaProducto(idLineaProducto)
+	idLineaProducto INT NOT NULL REFERENCES dbProducto.LineaProducto(idLineaProducto),
+	estado BIT NOT NULL
 )
 GO
 
@@ -158,12 +163,13 @@ CREATE TABLE dbProducto.Producto (
 	idProducto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(50) NOT NULL,
 	precio DECIMAL(10,2) NOT NULL CHECK(precio > 0),     -- Tiene que estar en pesos
-	precioReferencia DECIMAL(10,2), -- catalogo.csv
+	precioReferencia DECIMAL(10,2) CHECK(precioReferencia IS NULL OR precioReferencia > 0), -- catalogo.csv
 	unidadReferencia char(2),		-- catalogo.csv
 	fecha date,						-- catalogo.csv
 	cantidadUnitaria varchar(50),   -- productos_importados.xlsx
 	proveedor VARCHAR(50),			-- productos_importados.xlsx
-	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto)
+	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto),
+	estado BIT NOT NULL
 )
 GO
 
@@ -172,7 +178,7 @@ CREATE TABLE dbCliente.Cliente (
 	cuil CHAR(11) NOT NULL UNIQUE,
 	nombre VARCHAR(50) NOT NULL,
 	apellido VARCHAR(50) NOT NULL,
-	telefono CHAR(10) NOT NULL,
+	telefono CHAR(10) NOT NULL CHECK(telefono NOT LIKE '%[^0-9]%'),
 	genero CHAR(6) NOT NULL CHECK(genero IN ('Female','Male')),  
 	tipoCliente CHAR(6) NOT NULL CHECK(tipoCliente IN ('Normal','Member')),  
 	CONSTRAINT CK_CUIL_Valido CHECK (dbSistema.fnValidarCUIL(cuil) = 1)
@@ -184,8 +190,9 @@ CREATE TABLE dbSucursal.Sucursal (
 	ciudad VARCHAR(50) NOT NULL,
 	sucursal VARCHAR(50) NOT NULL,
 	direccion VARCHAR(100) NOT NULL,
-	telefono CHAR(10) NOT NULL,
-	horario CHAR(50) NOT NULL
+	telefono CHAR(10) NOT NULL CHECK(telefono NOT LIKE '%[^0-9]%'),
+	horario CHAR(50) NOT NULL,
+	estado BIT NOT NULL
 )
 GO
 
@@ -194,11 +201,12 @@ CREATE TABLE dbEmpleado.Empleado (
 	cuil CHAR(11) NOT NULL UNIQUE,
 	nombre VARCHAR(30) NOT NULL,
 	apellido VARCHAR(30) NOT NULL,
-	direccion VARCHAR(30) NOT NULL,
-	telefono CHAR(10) NOT NULL,
+	direccion VARCHAR(100) NOT NULL,
+	telefono CHAR(10) NOT NULL CHECK(telefono NOT LIKE '%[^0-9]%'),
 	emailPersonal varchar(30) NOT NULL,
 	emailEmpresa varchar(30) NOT NULL,
 	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- Mañana-Tarde-JornadaCompleta
+	cargo varchar(30) NOT NULL,
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,
 	idSucursal INT NOT NULL REFERENCES dbSucursal.Sucursal(idSucursal),
@@ -208,8 +216,8 @@ GO
 
 CREATE TABLE dbVenta.Factura (
 	idFactura INT IDENTITY(1,1) PRIMARY KEY,
-	tipoFactura CHAR NOT NULL,
-	estado CHAR NOT NULL CHECK(estado IN ('P','C')),  -- Pagada-Cancelada,
+	tipoFactura CHAR NOT NULL CHECK(tipoFactura IN ('A','B','C')),
+	estado CHAR NOT NULL CHECK(estado IN ('E','P','C')),  -- Emitida-Pagada-Cancelada,
 	fecha DATE NOT NULL,
 	hora TIME NOT NULL,
 	total DECIMAL(10,2) NOT NULL
@@ -218,7 +226,8 @@ GO
 
 CREATE TABLE dbVenta.MetodoPago (
 	idMetodoPago INT IDENTITY(1,1) PRIMARY KEY,
-	nombre VARCHAR(30) NOT NULL -- Credit card (Tarjeta de credito) - Cash (Efectivo) - Ewallet (Billetera Electronica)
+	nombre VARCHAR(30) NOT NULL, -- Credit card (Tarjeta de credito) - Cash (Efectivo) - Ewallet (Billetera Electronica)
+	estado BIT NOT NULL
 )
 GO
 
@@ -240,7 +249,8 @@ CREATE TABLE dbVenta.DetalleVenta (
 	idProducto INT NOT NULL REFERENCES dbProducto.Producto(idProducto),
 	cantidad INT NOT NULL CHECK (cantidad > 0),
 	precioUnitarioAlMomentoDeLaVenta DECIMAL(10,2) NOT NULL CHECK (precioUnitarioAlMomentoDeLaVenta > 0),
-	subtotal DECIMAL(10,2) NOT NULL,
+	subtotal DECIMAL(10,2) NOT NULL CHECK(subtotal = cantidad * precioUnitarioAlMomentoDeLaVenta),
 	PRIMARY KEY CLUSTERED (idVenta, idDetalleVenta)
 )
 GO
+
