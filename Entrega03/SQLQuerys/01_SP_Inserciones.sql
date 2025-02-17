@@ -77,7 +77,7 @@ GO
 ---------------------------------------------------------------------
 -- CATEGORIA DE PRODUCTO --
 
-CREATE OR ALTER PROCEDURE insertarCategoriaProducto
+CREATE OR ALTER PROCEDURE dbProducto.InsertarCategoriaProducto
     @nombre VARCHAR(50)
 AS
 BEGIN
