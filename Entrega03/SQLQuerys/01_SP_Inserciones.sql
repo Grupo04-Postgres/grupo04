@@ -10,7 +10,7 @@
    --
 
 ---------------------------------------------------------------------
--- Genere store procedures para manejar la inserciÃ³n
+-- Genere store procedures para manejar la inserción
 
 ---------------------------------------------------------------------
 -- Este script se puede ejecutar de una todas las veces que quieras
@@ -37,19 +37,19 @@ BEGIN
     -- Verificar que tenga la longitud correcta (11 caracteres)
     IF LEN(@cuil) = 11
     BEGIN
-        -- Extraer DNI y el dÃ­gito verificador
+        -- Extraer DNI y el dígito verificador
         SET @dni = CAST(SUBSTRING(@cuil, 3, 8) AS INT);
         SET @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT);
 
-        -- Realizar cÃ¡lculo del dÃ­gito verificador
+        -- Realizar cálculo del dígito verificador
         DECLARE @peso INT;
 
-        -- Array de pesos segÃºn la posiciÃ³n
+        -- Array de pesos según la posición
         DECLARE @pesos TABLE (pos INT, peso INT);
         INSERT INTO @pesos (pos, peso) VALUES
         (1, 5), (2, 4), (3, 3), (4, 2), (5, 7), (6, 6), (7, 5), (8, 4);
 
-        -- Sumar la multiplicaciÃ³n de los dÃ­gitos del CUIL por los pesos
+        -- Sumar la multiplicación de los dígitos del CUIL por los pesos
         SET @i = 1;
         WHILE @i <= 8
         BEGIN
@@ -58,14 +58,14 @@ BEGIN
             SET @i = @i + 1;
         END
 
-        -- Calcular el dÃ­gito verificador
+        -- Calcular el dígito verificador
         SET @suma = @suma % 11;
         SET @digito_verificador = 11 - @suma;
 
-        -- Verificar que el dÃ­gito calculado sea igual al dÃ­gito verificador del CUIL
+        -- Verificar que el dígito calculado sea igual al dígito verificador del CUIL
         IF @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT)
         BEGIN
-            SET @resultado = 1;  -- CUIL vÃ¡lido
+            SET @resultado = 1;  -- CUIL válido
         END
     END
 
@@ -77,18 +77,18 @@ GO
 ---------------------------------------------------------------------
 -- CATEGORIA DE PRODUCTO --
 
-CREATE OR ALTER PROCEDURE dbProducto.InsertarCategoriaProducto
+CREATE OR ALTER PROCEDURE insertarCategoriaProducto
     @nombre VARCHAR(50)
 AS
 BEGIN
     -- Validaciones
     IF LTRIM(RTRIM(@nombre)) = '' 
     BEGIN
-        RAISERROR('El nombre no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El nombre no puede estar vacío.', 16, 1);
         RETURN;
     END
 
-    -- InserciÃ³n
+    -- Inserción
     INSERT INTO dbProducto.CategoriaProducto (nombre, estado)
     VALUES (@nombre, 1);
 END
@@ -105,11 +105,11 @@ BEGIN
 	-- Validaciones
 	IF LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        RAISERROR('El nombre no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El nombre no puede estar vacío.', 16, 1);
         RETURN;
 	END
 
-	-- InserciÃ³n
+	-- Inserción
 	INSERT INTO dbProducto.LineaProducto(nombre, idCategoriaProducto, estado) 
 	VALUES (@nombre, @idCategoriaProducto, 1)
 END
@@ -125,13 +125,14 @@ CREATE OR ALTER PROCEDURE dbProducto.InsertarProducto
     @unidadReferencia CHAR(2) = NULL,
     @fecha DATE = NULL, 
     @cantidadUnitaria VARCHAR(50) = NULL,
+    @proveedor VARCHAR(50) = NULL,
     @idCategoriaProducto INT 
 AS
 BEGIN
 	-- Validaciones
     IF LTRIM(RTRIM(@nombre)) = '' 
     BEGIN
-        RAISERROR('El nombre del producto no puede ser una cadena vacÃ­a.', 16, 1);
+        RAISERROR('El nombre no puede ser vacio.', 16, 1);
         RETURN;
     END
 
@@ -159,9 +160,9 @@ BEGIN
         RETURN;
     END
 
-    -- InserciÃ³n
-    INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, cantidadUnitaria, idCategoriaProducto, estado)
-    VALUES (@nombre, @precio, @precioReferencia, @unidadReferencia, @fecha, @cantidadUnitaria, @idCategoriaProducto, 1)
+    -- Inserción
+    INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, cantidadUnitaria, proveedor, idCategoriaProducto, estado)
+    VALUES (@nombre, @precio, @precioReferencia, @unidadReferencia, @fecha, @cantidadUnitaria, @proveedor, @idCategoriaProducto, 1)
 END
 GO
 
@@ -181,37 +182,37 @@ BEGIN
 	-- Hacer validaciones
 	IF dbSistema.fnValidarCUIL(@cuil) = 0
 	BEGIN
-        RAISERROR('El CUIL es invÃ¡lido.', 16, 1);
+        RAISERROR('El CUIL es inválido.', 16, 1);
         RETURN;
     END
 
 	IF LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        RAISERROR('El nombre no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El nombre no puede estar vacío.', 16, 1);
         RETURN;
 	END
 
 	IF LTRIM(RTRIM(@apellido)) = ''
     BEGIN
-        RAISERROR('El apellido no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El apellido no puede estar vacío.', 16, 1);
         RETURN;
 	END	
 
 	IF LTRIM(RTRIM(@telefono)) = ''
     BEGIN
-        RAISERROR('El telefono no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El telefono no puede estar vacío.', 16, 1);
         RETURN;
 	END	
 	
 	IF LTRIM(RTRIM(@genero)) = ''
     BEGIN
-        RAISERROR('El genero no puede estar vacÃ­o, debe ser Female o Male.', 16, 1);
+        RAISERROR('El genero no puede estar vacío, debe ser Female o Male.', 16, 1);
         RETURN;
 	END
 
 	IF LTRIM(RTRIM(@tipoCliente)) = ''
     BEGIN
-        RAISERROR('El tipo de cliente no puede estar vacÃ­o, debe ser Member o Normal.', 16, 1);
+        RAISERROR('El tipo de cliente no puede estar vacío, debe ser Member o Normal.', 16, 1);
         RETURN;
 	END
 
@@ -236,35 +237,35 @@ BEGIN
 	-- Validaciones
 	IF LTRIM(RTRIM(@ciudad)) = ''
     BEGIN
-        RAISERROR('La ciudad no puede estar vacÃ­a.', 16, 1);
+        RAISERROR('La ciudad no puede estar vacía.', 16, 1);
         RETURN;
 	END	
 
 	IF LTRIM(RTRIM(@sucursal)) = ''
     BEGIN
-        RAISERROR('La sucursal no puede estar vacÃ­a.', 16, 1);
+        RAISERROR('La sucursal no puede estar vacía.', 16, 1);
         RETURN;
 	END	
 	
 	IF LTRIM(RTRIM(@direccion)) = ''
     BEGIN
-        RAISERROR('La direccion no puede estar vacÃ­a.', 16, 1);
+        RAISERROR('La direccion no puede estar vacía.', 16, 1);
         RETURN;
 	END
 
 	IF LTRIM(RTRIM(@telefono)) = ''
     BEGIN
-        RAISERROR('El telefono no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El telefono no puede estar vacío.', 16, 1);
         RETURN;
 	END
 
 	IF LTRIM(RTRIM(@horario)) = ''
     BEGIN
-        RAISERROR('El horario no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El horario no puede estar vacío.', 16, 1);
         RETURN;
 	END
 
-	-- InserciÃ³n
+	-- Inserción
 	INSERT INTO dbSucursal.Sucursal(ciudad, sucursal, direccion, telefono, horario) 
 	VALUES (@ciudad, @sucursal, @direccion, @telefono, @horario)
 END
@@ -291,47 +292,47 @@ BEGIN
     -- Validaciones
 	IF dbSistema.fnValidarCUIL(@cuil) = 0
 	BEGIN
-        RAISERROR('El CUIL es invÃ¡lido.', 16, 1);
+        RAISERROR('El CUIL es inválido.', 16, 1);
         RETURN;
     END
 
     IF LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        RAISERROR('El nombre no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El nombre no puede estar vacío.', 16, 1);
         RETURN;
     END
 
     IF LTRIM(RTRIM(@apellido)) = ''
     BEGIN
-        RAISERROR('El apellido no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El apellido no puede estar vacío.', 16, 1);
         RETURN;
     END  
 
     IF LTRIM(RTRIM(@telefono)) = ''
     BEGIN
-        RAISERROR('El telÃ©fono no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El teléfono no puede estar vacío.', 16, 1);
         RETURN;
     END
 
 	IF LTRIM(RTRIM(@emailPersonal)) = '' OR LTRIM(RTRIM(@emailEmpresa)) = ''
     BEGIN
-        RAISERROR('El email no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El email no puede estar vacío.', 16, 1);
         RETURN;
     END
 
     IF LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        RAISERROR('El turno no puede estar vacÃ­o, debe ser TM, TT o Jornada completa.', 16, 1);
+        RAISERROR('El turno no puede estar vacío, debe ser TM, TT o Jornada completa.', 16, 1);
         RETURN;
     END
 
 	IF LTRIM(RTRIM(@cargo)) = ''
     BEGIN
-        RAISERROR('El cargo no puede estar vacÃ­o.', 16, 1);
+        RAISERROR('El cargo no puede estar vacío.', 16, 1);
         RETURN;
     END
 
-     -- InserciÃ³n
+     -- Inserción
     INSERT INTO dbEmpleado.Empleado (cuil, nombre, apellido, direccion, telefono, emailPersonal, emailEmpresa, turno, cargo, fechaAlta, idSucursal)
     VALUES (@cuil, @nombre, @apellido, @direccion, @telefono, @emailPersonal, @emailEmpresa, @turno, @cargo, @fechaAlta, @idSucursal);
 END
@@ -368,7 +369,7 @@ BEGIN
         RETURN;
     END
 
-    -- InserciÃ³n
+    -- Inserción
     INSERT INTO dbVenta.Factura (tipoFactura, estado, fecha, hora, total)
     VALUES (@tipoFactura, @estado, @fecha, @hora, @total);
 END
@@ -389,7 +390,7 @@ BEGIN
         RETURN;
     END
 
-    -- InserciÃ³n
+    -- Inserción
     INSERT INTO dbVenta.MetodoPago (nombre, estado)
     VALUES (@nombre, 1);
 END
@@ -416,7 +417,7 @@ BEGIN
         RETURN;
     END
 
-    -- InserciÃ³n
+    -- Inserción
     INSERT INTO dbVenta.Venta (fecha, hora, identificadorPago, legajoEmpleado, idCliente, idFactura, idMetodoPago)
     VALUES (@fecha, @hora, @identificadorPago, @legajoEmpleado, @idCliente, @idFactura, @idMetodoPago);
 END
@@ -460,7 +461,7 @@ BEGIN
     FROM dbVenta.DetalleVenta
     WHERE idVenta = @idVenta;
 
-    -- InserciÃ³n
+    -- Inserción
     INSERT INTO dbVenta.DetalleVenta (idDetalleVenta, idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
     VALUES (@sigIdDetalleVenta, @idVenta, @idProducto, @cantidad, @precioUnitarioAlMomentoDeLaVenta, @subtotal);
 END
