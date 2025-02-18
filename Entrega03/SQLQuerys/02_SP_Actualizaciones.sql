@@ -13,9 +13,7 @@
 -- Genere store procedures para manejar las actualizaciones
 
 ---------------------------------------------------------------------
--- Este script se puede ejecutar de una todas las veces que quieras
-
----------------------------------------------------------------------
+USE master
 USE Com1353G04
 GO
 
@@ -49,6 +47,7 @@ BEGIN
 END
 GO
 
+
 ---------------------------------------------------------------------
 -- LINEA DE PRODUCTO --
 
@@ -68,7 +67,7 @@ BEGIN
         SET @error = @error + 'No existe una categoría con el ID especificado. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
-        SET @error = @error + 'No se permiten valores vacíos para el nombre. ';
+        SET @error = @error + 'El nombre no puede estar vacío.';
 	
 	-- Informar errores si los hubo
     IF @error <> ''
@@ -85,6 +84,7 @@ BEGIN
 END
 GO
 
+
 ---------------------------------------------------------------------
 -- PRODUCTO --
 
@@ -96,8 +96,7 @@ CREATE OR ALTER PROCEDURE dbProducto.ActualizarProducto
     @unidadReferencia CHAR(2) = NULL,
     @fecha DATE = NULL, 
     @cantidadUnitaria VARCHAR(50) = NULL,
-    @proveedor VARCHAR(50) = NULL,
-    @idCategoriaProducto INT = NULL
+    @idLineaProducto INT = NULL
 AS
 BEGIN
     DECLARE @error VARCHAR(MAX) = '';
@@ -121,8 +120,8 @@ BEGIN
     IF @cantidadUnitaria IS NOT NULL AND LTRIM(RTRIM(@cantidadUnitaria)) = '' 
         SET @error = @error + 'La cantidad unitaria no puede estar vacía. ';
     
-    IF @idCategoriaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
-        SET @error = @error + 'No existe una categoría con el ID especificado. ';
+    IF @idLineaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
+        SET @error = @error + 'No existe una linea de producto con el ID especificado. ';
    	
 	-- Informar errores si los hubo 
     IF @error <> ''
@@ -138,8 +137,7 @@ BEGIN
             unidadReferencia = COALESCE(@unidadReferencia, unidadReferencia),
             fecha = COALESCE(@fecha, fecha),
             cantidadUnitaria = COALESCE(@cantidadUnitaria, cantidadUnitaria),
-            proveedor = COALESCE(@proveedor, proveedor),
-            idCategoriaProducto = COALESCE(@idCategoriaProducto, idCategoriaProducto)
+            @idLineaProducto = COALESCE(@idLineaProducto, idLineaProducto)
         WHERE idProducto = @idProducto;
 	END
 END
@@ -201,7 +199,6 @@ BEGIN
 	END
 END
 GO
-
 
 
 ---------------------------------------------------------------------

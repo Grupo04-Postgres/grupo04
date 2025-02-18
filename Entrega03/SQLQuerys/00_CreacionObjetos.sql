@@ -13,13 +13,6 @@
 -- Cree la base de datos, entidades y relaciones. Incluya restricciones y claves.
 
 ---------------------------------------------------------------------
---USE master
---DROP DATABASE Com1353G04
-
----------------------------------------------------------------------
--- Este script se puede ejecutar de una todas las veces que quieras
-
----------------------------------------------------------------------
 -- Crear base de datos si no existe
 
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'Com1353G04')
@@ -30,7 +23,6 @@ GO
 
 ---------------------------------------------------------------------
 -- Crear schemas si no existen
-
 USE Com1353G04
 GO
 
@@ -76,19 +68,14 @@ IF OBJECT_ID('dbEmpleado.Empleado', 'U') IS NOT NULL DROP TABLE dbEmpleado.Emple
 IF OBJECT_ID('dbSucursal.Sucursal', 'U') IS NOT NULL DROP TABLE dbSucursal.Sucursal
 IF OBJECT_ID('dbCliente.Cliente', 'U') IS NOT NULL DROP TABLE dbCliente.Cliente
 IF OBJECT_ID('dbProducto.Producto', 'U') IS NOT NULL DROP TABLE dbProducto.Producto
-IF OBJECT_ID('dbProducto.LineaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.LineaProducto
 IF OBJECT_ID('dbProducto.CategoriaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.CategoriaProducto
+IF OBJECT_ID('dbProducto.LineaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.LineaProducto
+
 GO
 
 
 ---------------------------------------------------------------------
 -- Crear tablas
-
--- HAY QUE CHEQUEAR EL TAMAÑO DEL VARCHAR DE LOS ATRIBUTOS
--- VER SI DEJAMOS VARCHAR o CAMBIAMOS A CHAR, NCHAR o NVARCHAR
--- FALTA LO DE NOTA CREDITO
--- VER SI PONEMOS ON DELETE CASCADE
-
 
 CREATE TABLE dbProducto.CategoriaProducto (
 	idCategoriaProducto INT IDENTITY(1,1) PRIMARY KEY,
@@ -113,8 +100,7 @@ CREATE TABLE dbProducto.Producto (
 	unidadReferencia char(2),		-- catalogo.csv
 	fecha date,						-- catalogo.csv
 	cantidadUnitaria varchar(50),   -- productos_importados.xlsx
-	proveedor VARCHAR(50),			-- productos_importados.xlsx
-	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto),
+	idLineaProducto INT NOT NULL REFERENCES dbProducto.LineaProducto(idLineaProducto),
 	estado BIT NOT NULL
 )
 GO

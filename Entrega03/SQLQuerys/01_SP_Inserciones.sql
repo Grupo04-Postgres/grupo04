@@ -13,9 +13,7 @@
 -- Genere store procedures para manejar la inserción
 
 ---------------------------------------------------------------------
--- Este script se puede ejecutar de una todas las veces que quieras
-
----------------------------------------------------------------------
+USE master
 USE Com1353G04
 GO
 
@@ -94,6 +92,7 @@ BEGIN
 END
 GO
 
+
 ---------------------------------------------------------------------
 -- LINEA DE PRODUCTO --
 
@@ -102,18 +101,17 @@ CREATE OR ALTER PROCEDURE dbProducto.InsertarLineaProducto
 	@idCategoriaProducto INT
 AS
 BEGIN
-	-- Validaciones
-	IF LTRIM(RTRIM(@nombre)) = ''
-    BEGIN
-        RAISERROR('El nombre no puede estar vacío.', 16, 1);
-        RETURN;
+    IF LTRIM(RTRIM(@nombre)) = ''
+        RAISERROR('El nombre no puede estar vacío. ', 16, 1);
+    ELSE
+	BEGIN
+		-- Inserción
+		INSERT INTO dbProducto.LineaProducto(nombre, idCategoriaProducto, estado) 
+		VALUES (@nombre, @idCategoriaProducto, 1)
 	END
-
-	-- Inserción
-	INSERT INTO dbProducto.LineaProducto(nombre, idCategoriaProducto, estado) 
-	VALUES (@nombre, @idCategoriaProducto, 1)
 END
 GO
+
 
 ---------------------------------------------------------------------
 -- PRODUCTO --
@@ -125,44 +123,40 @@ CREATE OR ALTER PROCEDURE dbProducto.InsertarProducto
     @unidadReferencia CHAR(2) = NULL,
     @fecha DATE = NULL, 
     @cantidadUnitaria VARCHAR(50) = NULL,
-    @proveedor VARCHAR(50) = NULL,
-    @idCategoriaProducto INT 
+    @idLineaProducto INT 
 AS
 BEGIN
-	-- Validaciones
-    IF LTRIM(RTRIM(@nombre)) = '' 
-    BEGIN
-        RAISERROR('El nombre no puede ser vacio.', 16, 1);
-        RETURN;
-    END
+    -- Validaciones
+    DECLARE @error VARCHAR(MAX) = '';
 
+    IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = '' 
+        SET @error = @error + 'El nombre no puede ser vacío. ';
+    
     IF @precio <= 0
-    BEGIN
-        RAISERROR('El precio debe ser mayor a 0.', 16, 1);
-        RETURN;
-    END
-
-	IF @precioReferencia IS NOT NULL AND @precioReferencia <= 0
-    BEGIN
-        RAISERROR('El precio de referencia debe ser mayor a 0.', 16, 1);
-        RETURN;
-    END
-
+        SET @error = @error + 'El precio debe ser mayor a 0. ';
+    
+    IF @precioReferencia IS NOT NULL AND @precioReferencia <= 0
+        SET @error = @error + 'El precio de referencia debe ser mayor a 0. ';
+    
     IF @unidadReferencia IS NOT NULL AND LTRIM(RTRIM(@unidadReferencia)) = '' 
-    BEGIN
-        RAISERROR('La unidad de referencia no puede estar vacia.', 16, 1);
-        RETURN;
-    END
-
+        SET @error = @error + 'La unidad de referencia no puede estar vacía. ';
+    
     IF @cantidadUnitaria IS NOT NULL AND LTRIM(RTRIM(@cantidadUnitaria)) = '' 
-    BEGIN
-        RAISERROR('La cantidad unitaria no puede estar vacia.', 16, 1);
-        RETURN;
-    END
+        SET @error = @error + 'La cantidad unitaria no puede estar vacía. ';
+    
+    IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
+        SET @error = @error + 'No existe una linea de producto con el ID especificado. ';
+   	
+	-- Informar errores si los hubo 
+    IF @error <> ''
+        RAISERROR(@error, 16, 1);
+    ELSE
+	BEGIN
+		-- Inserción
+		INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, cantidadUnitaria, idLineaProducto, estado)
+		VALUES (@nombre, @precio, @precioReferencia, @unidadReferencia, @fecha, @cantidadUnitaria, @idLineaProducto, 1)
+	END
 
-    -- Inserción
-    INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, cantidadUnitaria, proveedor, idCategoriaProducto, estado)
-    VALUES (@nombre, @precio, @precioReferencia, @unidadReferencia, @fecha, @cantidadUnitaria, @proveedor, @idCategoriaProducto, 1)
 END
 GO
 
@@ -179,46 +173,37 @@ CREATE OR ALTER PROCEDURE dbCliente.InsertarCliente
 	@tipoCliente CHAR(6)
 AS
 BEGIN
-	-- Hacer validaciones
-	IF dbSistema.fnValidarCUIL(@cuil) = 0
-	BEGIN
-        RAISERROR('El CUIL es inválido.', 16, 1);
-        RETURN;
-    END
-
-	IF LTRIM(RTRIM(@nombre)) = ''
-    BEGIN
-        RAISERROR('El nombre no puede estar vacío.', 16, 1);
-        RETURN;
-	END
-
-	IF LTRIM(RTRIM(@apellido)) = ''
-    BEGIN
-        RAISERROR('El apellido no puede estar vacío.', 16, 1);
-        RETURN;
-	END	
-
-	IF LTRIM(RTRIM(@telefono)) = ''
-    BEGIN
-        RAISERROR('El telefono no puede estar vacío.', 16, 1);
-        RETURN;
-	END	
 	
-	IF LTRIM(RTRIM(@genero)) = ''
-    BEGIN
-        RAISERROR('El genero no puede estar vacío, debe ser Female o Male.', 16, 1);
-        RETURN;
-	END
+	DECLARE @error VARCHAR(MAX) = '';
 
-	IF LTRIM(RTRIM(@tipoCliente)) = ''
-    BEGIN
-        RAISERROR('El tipo de cliente no puede estar vacío, debe ser Member o Normal.', 16, 1);
-        RETURN;
+    -- Validaciones  
+    IF @cuil IS NOT NULL AND dbSistema.fnValidarCUIL(@cuil) = 0
+        SET @error = @error + 'El CUIL es inválido. ';
+    
+    IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = '' 
+        SET @error = @error + 'El nombre no puede estar vacío. ';
+    
+    IF @apellido IS NOT NULL AND LTRIM(RTRIM(@apellido)) = '' 
+        SET @error = @error + 'El apellido no puede estar vacío. ';
+    
+    IF @telefono IS NOT NULL AND LTRIM(RTRIM(@telefono)) = '' 
+        SET @error = @error + 'El teléfono no puede estar vacío. ';
+    
+    IF @genero IS NOT NULL AND @genero NOT IN ('Female', 'Male')
+        SET @error = @error + 'El género debe ser Female o Male. ';
+    
+    IF @tipoCliente IS NOT NULL AND @tipoCliente NOT IN ('Member', 'Normal')
+        SET @error = @error + 'El tipo de cliente debe ser Member o Normal. ';
+    	
+	-- Informar errores si los hubo
+    IF @error <> ''
+        RAISERROR(@error, 16, 1);
+    ELSE
+	BEGIN
+        -- Insercion
+        INSERT INTO dbCliente.Cliente(cuil, nombre, apellido, telefono, genero, tipoCliente) 
+		VALUES (@cuil, @nombre, @apellido, @telefono, @genero, @tipoCliente)
 	END
-
-	-- Insertar
-	INSERT INTO dbCliente.Cliente(cuil, nombre, apellido, telefono, genero, tipoCliente) 
-	VALUES (@cuil, @nombre, @apellido, @telefono, @genero, @tipoCliente)
 END
 GO
 
@@ -234,40 +219,33 @@ CREATE OR ALTER PROCEDURE dbSucursal.InsertarSucursal
 	@horario CHAR(50)
 AS
 BEGIN
-	-- Validaciones
-	IF LTRIM(RTRIM(@ciudad)) = ''
-    BEGIN
-        RAISERROR('La ciudad no puede estar vacía.', 16, 1);
-        RETURN;
-	END	
+	DECLARE @error VARCHAR(MAX) = '';
 
-	IF LTRIM(RTRIM(@sucursal)) = ''
-    BEGIN
-        RAISERROR('La sucursal no puede estar vacía.', 16, 1);
-        RETURN;
-	END	
-	
-	IF LTRIM(RTRIM(@direccion)) = ''
-    BEGIN
-        RAISERROR('La direccion no puede estar vacía.', 16, 1);
-        RETURN;
+    -- Validaciones
+    IF LTRIM(RTRIM(@ciudad)) = '' 
+        SET @error = @error + 'La ciudad no puede estar vacía. ';
+    
+    IF LTRIM(RTRIM(@sucursal)) = '' 
+        SET @error = @error + 'La sucursal no puede estar vacía. ';
+    
+    IF LTRIM(RTRIM(@direccion)) = '' 
+        SET @error = @error + 'La dirección no puede estar vacía. ';
+    
+    IF LTRIM(RTRIM(@telefono)) = '' 
+        SET @error = @error + 'El teléfono no puede estar vacío. ';
+    
+    IF LTRIM(RTRIM(@horario)) = '' 
+        SET @error = @error + 'El horario no puede estar vacío. ';
+    	
+	-- Informar errores si los hubo
+    IF @error <> ''
+        RAISERROR(@error, 16, 1);
+    ELSE
+	BEGIN
+		-- Inserción
+		INSERT INTO dbSucursal.Sucursal(ciudad, sucursal, direccion, telefono, horario) 
+		VALUES (@ciudad, @sucursal, @direccion, @telefono, @horario)
 	END
-
-	IF LTRIM(RTRIM(@telefono)) = ''
-    BEGIN
-        RAISERROR('El telefono no puede estar vacío.', 16, 1);
-        RETURN;
-	END
-
-	IF LTRIM(RTRIM(@horario)) = ''
-    BEGIN
-        RAISERROR('El horario no puede estar vacío.', 16, 1);
-        RETURN;
-	END
-
-	-- Inserción
-	INSERT INTO dbSucursal.Sucursal(ciudad, sucursal, direccion, telefono, horario) 
-	VALUES (@ciudad, @sucursal, @direccion, @telefono, @horario)
 END
 GO
 
@@ -290,51 +268,44 @@ CREATE OR ALTER PROCEDURE dbCliente.InsertarEmpleado
 AS
 BEGIN
     -- Validaciones
-	IF dbSistema.fnValidarCUIL(@cuil) = 0
-	BEGIN
-        RAISERROR('El CUIL es inválido.', 16, 1);
-        RETURN;
-    END
-
+	DECLARE @error VARCHAR(MAX) = '';
+    
+    IF dbSistema.fnValidarCUIL(@cuil) = 0
+        SET @error = @error + 'El CUIL es inválido. ';
+    
     IF LTRIM(RTRIM(@nombre)) = ''
-    BEGIN
-        RAISERROR('El nombre no puede estar vacío.', 16, 1);
-        RETURN;
-    END
-
+        SET @error = @error + 'El nombre no puede estar vacío. ';
+    
     IF LTRIM(RTRIM(@apellido)) = ''
-    BEGIN
-        RAISERROR('El apellido no puede estar vacío.', 16, 1);
-        RETURN;
-    END  
-
+        SET @error = @error + 'El apellido no puede estar vacío. ';
+    
     IF LTRIM(RTRIM(@telefono)) = ''
+        SET @error = @error + 'El teléfono no puede estar vacío. ';
+    
+    IF LTRIM(RTRIM(@emailPersonal)) = ''
+        SET @error = @error + 'El email personal no puede estar vacío. ';
+    
+    IF LTRIM(RTRIM(@emailEmpresa)) = ''
+        SET @error = @error + 'El email de la empresa no puede estar vacío. ';
+    
+    IF @turno NOT IN ('TM', 'TT', 'Jornada completa')
+        SET @error = @error + 'El turno debe ser TM, TT o Jornada completa. ';
+    
+    IF LTRIM(RTRIM(@cargo)) = ''
+        SET @error = @error + 'El cargo no puede estar vacío. ';
+    
+    IF NOT EXISTS (SELECT 1 FROM dbSucursal.Sucursal WHERE idSucursal = @idSucursal)
+        SET @error = @error + 'No existe una sucursal con el ID especificado. ';
+    	
+	-- Informar errores si los hubo
+    IF @error <> ''
+        RAISERROR(@error, 16, 1);
+    ELSE
     BEGIN
-        RAISERROR('El teléfono no puede estar vacío.', 16, 1);
-        RETURN;
-    END
-
-	IF LTRIM(RTRIM(@emailPersonal)) = '' OR LTRIM(RTRIM(@emailEmpresa)) = ''
-    BEGIN
-        RAISERROR('El email no puede estar vacío.', 16, 1);
-        RETURN;
-    END
-
-    IF LTRIM(RTRIM(@turno)) = ''
-    BEGIN
-        RAISERROR('El turno no puede estar vacío, debe ser TM, TT o Jornada completa.', 16, 1);
-        RETURN;
-    END
-
-	IF LTRIM(RTRIM(@cargo)) = ''
-    BEGIN
-        RAISERROR('El cargo no puede estar vacío.', 16, 1);
-        RETURN;
-    END
-
-     -- Inserción
-    INSERT INTO dbEmpleado.Empleado (cuil, nombre, apellido, direccion, telefono, emailPersonal, emailEmpresa, turno, cargo, fechaAlta, idSucursal)
-    VALUES (@cuil, @nombre, @apellido, @direccion, @telefono, @emailPersonal, @emailEmpresa, @turno, @cargo, @fechaAlta, @idSucursal);
+		 -- Inserción
+		INSERT INTO dbEmpleado.Empleado (cuil, nombre, apellido, direccion, telefono, emailPersonal, emailEmpresa, turno, cargo, fechaAlta, idSucursal)
+		VALUES (@cuil, @nombre, @apellido, @direccion, @telefono, @emailPersonal, @emailEmpresa, @turno, @cargo, @fechaAlta, @idSucursal);
+	END
 END
 GO
 
@@ -350,28 +321,27 @@ CREATE OR ALTER PROCEDURE dbVenta.InsertarFactura
     @total DECIMAL(10,2)
 AS
 BEGIN
+    DECLARE @error VARCHAR(MAX) = '';
+
     -- Validaciones
-    IF @tipoFactura NOT IN ('A', 'B', 'C')
+    IF @tipoFactura IS NOT NULL AND @tipoFactura NOT IN ('A', 'B', 'C')
+        SET @error = @error + 'El tipo de factura debe ser A, B o C. ';
+    
+    IF @estado IS NOT NULL AND @estado NOT IN ('E', 'P', 'C')
+        SET @error = @error + 'El estado debe ser E, P o C. ';
+    
+    IF @total IS NOT NULL AND @total <= 0
+        SET @error = @error + 'El total debe ser mayor a 0. ';
+    	
+	-- Informar errores si los hubo
+    IF @error <> ''
+        RAISERROR(@error, 16, 1);
+    ELSE
     BEGIN
-        RAISERROR('El tipo de factura debe ser A, B o C.', 16, 1);
-        RETURN;
-    END
-
-    IF @estado NOT IN ('E', 'P', 'C')
-    BEGIN
-        RAISERROR('El estado debe ser E, P o C.', 16, 1);
-        RETURN;
-    END
-
-    IF @total <= 0
-    BEGIN
-        RAISERROR('El total debe ser mayor a 0.', 16, 1);
-        RETURN;
-    END
-
-    -- Inserción
-    INSERT INTO dbVenta.Factura (tipoFactura, estado, fecha, hora, total)
-    VALUES (@tipoFactura, @estado, @fecha, @hora, @total);
+		-- Inserción
+		INSERT INTO dbVenta.Factura (tipoFactura, estado, fecha, hora, total)
+		VALUES (@tipoFactura, @estado, @fecha, @hora, @total);
+	END
 END
 GO
 
@@ -383,7 +353,7 @@ CREATE OR ALTER PROCEDURE dbVenta.InsertarMetodoPago
     @nombre VARCHAR(30)
 AS
 BEGIN
- -- Validaciones
+	-- Validaciones
     IF LTRIM(RTRIM(@nombre)) = '' 
     BEGIN
         RAISERROR('El nombre no puede estar vacio.', 16, 1);
@@ -435,35 +405,34 @@ CREATE OR ALTER PROCEDURE dbVenta.InsertarDetalleVenta
     @subtotal DECIMAL(10,2)
 AS
 BEGIN
-    -- Validaciones
-    IF @cantidad <= 0
-    BEGIN
-        RAISERROR('La cantidad debe ser mayor a 0.', 16, 1);
-        RETURN;
-    END
+    DECLARE @error VARCHAR(MAX) = '';
 
-    IF @precioUnitarioAlMomentoDeLaVenta <= 0
-    BEGIN
-        RAISERROR('El precio unitario debe ser mayor a 0.', 16, 1);
-        RETURN;
-    END
-
-    IF @subtotal <= 0
-    BEGIN
-        RAISERROR('El subtotal debe ser mayor a 0.', 16, 1);
-        RETURN;
-    END
-
-	    -- Obtener el siguiente idDetalleVenta para este idVenta
-    DECLARE @sigIdDetalleVenta INT;
+    -- Validaciones  
+    IF @cantidad IS NOT NULL AND @cantidad <= 0
+        SET @error = @error + 'La cantidad debe ser mayor a 0. ';
     
-    SELECT @sigIdDetalleVenta = ISNULL(MAX(idDetalleVenta), 0) + 1
-    FROM dbVenta.DetalleVenta
-    WHERE idVenta = @idVenta;
+    IF @precioUnitarioAlMomentoDeLaVenta IS NOT NULL AND @precioUnitarioAlMomentoDeLaVenta <= 0
+        SET @error = @error + 'El precio unitario debe ser mayor a 0. ';
+    
+    IF @subtotal IS NOT NULL AND @subtotal <= 0
+        SET @error = @error + 'El subtotal debe ser mayor a 0. ';
+    
+    -- Informar errores si los hubo
+    IF @error <> ''
+        RAISERROR(@error, 16, 1);
+    ELSE
+    BEGIN
+		 -- Obtener el siguiente idDetalleVenta para este idVenta
+		DECLARE @sigIdDetalleVenta INT;
+    
+		SELECT @sigIdDetalleVenta = ISNULL(MAX(idDetalleVenta), 0) + 1
+		FROM dbVenta.DetalleVenta
+		WHERE idVenta = @idVenta;
 
-    -- Inserción
-    INSERT INTO dbVenta.DetalleVenta (idDetalleVenta, idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
-    VALUES (@sigIdDetalleVenta, @idVenta, @idProducto, @cantidad, @precioUnitarioAlMomentoDeLaVenta, @subtotal);
+		-- Inserción
+		INSERT INTO dbVenta.DetalleVenta (idDetalleVenta, idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
+		VALUES (@sigIdDetalleVenta, @idVenta, @idProducto, @cantidad, @precioUnitarioAlMomentoDeLaVenta, @subtotal);
+	END
 END
 GO
 
