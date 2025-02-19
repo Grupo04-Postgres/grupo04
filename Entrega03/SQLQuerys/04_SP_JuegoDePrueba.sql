@@ -85,6 +85,29 @@ GO
 
 ---------------------------------------------------------------------
 -- PRODUCTO --
+-- Prueba 1: nombre, precio y ID linea de producto valida
+EXEC dbProducto.InsertarProducto @nombre ="Banana", @precio = 26, @idLineaProducto = 1;
+GO
+
+-- Prueba 2: nombre invalido (Cadena Vacia)
+EXEC dbProducto.InsertarProducto @nombre = '', @precio = 26, @idLineaProducto;
+GO
+   
+-- Prueba 3: precio invalido (Valor menor a cero)
+EXEC dbProducto.InsertarProducto @nombre ="Banana", @precio = -1, @idLineaProducto = 1;
+GO
+
+-- Prueba 4: precio invalido (Valor no numerico)
+EXEC dbProducto.InsertarProducto @nombre ="Banana", @precio = "abc", @idLineaProducto = 1;
+GO
+   
+-- Prueba 5: idLineaProducto invalido (Valor Vacio)
+EXEC dbProducto.InsertarProducto @nombre ="Banana", @precio = 26, @idLineaProducto = ;
+GO
+
+-- Prueba 5: idLineaProducto invalido (Valor No numerico)
+EXEC dbProducto.InsertarProducto @nombre ="Banana", @precio = 26, @idLineaProducto = "abc";
+GO
 
 ---------------------------------------------------------------------
 -- CLIENTE --
