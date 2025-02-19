@@ -77,17 +77,17 @@ GO
 ---------------------------------------------------------------------
 -- Crear tablas
 
-CREATE TABLE dbProducto.CategoriaProducto (
-	idCategoriaProducto INT IDENTITY(1,1) PRIMARY KEY,
+CREATE TABLE dbProducto.LineaProducto (
+	idLineaProducto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(50) NOT NULL UNIQUE,
 	estado BIT NOT NULL
 )
 GO
 
-CREATE TABLE dbProducto.LineaProducto (
-	idLineaProducto INT IDENTITY(1,1) PRIMARY KEY,
+CREATE TABLE dbProducto.CategoriaProducto (
+	idCategoriaProducto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(50) NOT NULL UNIQUE,
-	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto),
+	idLineaProducto INT NOT NULL REFERENCES dbProducto.LineaProducto(idLineaProducto),
 	estado BIT NOT NULL
 )
 GO
@@ -100,19 +100,19 @@ CREATE TABLE dbProducto.Producto (
 	unidadReferencia char(2),		-- catalogo.csv
 	fecha date,						-- catalogo.csv
 	cantidadUnitaria varchar(50),   -- productos_importados.xlsx
-	idLineaProducto INT NOT NULL REFERENCES dbProducto.LineaProducto(idLineaProducto),
+	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto),
 	estado BIT NOT NULL
 )
 GO
 
 CREATE TABLE dbCliente.Cliente (
 	idCliente INT IDENTITY(1,1) PRIMARY KEY,
-	cuil CHAR(11) NOT NULL UNIQUE,
+	cuil CHAR(13) NOT NULL UNIQUE,
 	nombre VARCHAR(50) NOT NULL,
 	apellido VARCHAR(50) NOT NULL,
 	telefono CHAR(10) NOT NULL,
 	genero CHAR(6) NOT NULL CHECK(genero IN ('Female','Male')),  
-	tipoCliente CHAR(6) NOT NULL CHECK(tipoCliente IN ('Normal','Member')),  
+	tipoCliente CHAR(6) NOT NULL CHECK(tipoCliente IN ('Normal','Member')) 
 )
 GO
 
@@ -129,7 +129,7 @@ GO
 
 CREATE TABLE dbEmpleado.Empleado (
 	legajoEmpleado INT IDENTITY(1,1) PRIMARY KEY,
-	cuil CHAR(11) NOT NULL UNIQUE,
+	cuil CHAR(13) NOT NULL UNIQUE,
 	nombre VARCHAR(30) NOT NULL,
 	apellido VARCHAR(30) NOT NULL,
 	direccion VARCHAR(100) NOT NULL,
@@ -140,7 +140,7 @@ CREATE TABLE dbEmpleado.Empleado (
 	cargo varchar(30) NOT NULL,
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,
-	idSucursal INT NOT NULL REFERENCES dbSucursal.Sucursal(idSucursal),
+	idSucursal INT NOT NULL REFERENCES dbSucursal.Sucursal(idSucursal)
 )
 GO
 

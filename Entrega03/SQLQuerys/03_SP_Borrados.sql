@@ -20,7 +20,6 @@
 -- En algunos SPs, se reutilizan los que ya existen para facilitar el proceso.
 
 ---------------------------------------------------------------------
-USE master
 USE Com1353G04
 GO
 
@@ -46,15 +45,15 @@ GO
 
 
 ---------------------------------------------------------------------
--- LINEA DE PRODUCTO --
+-- CATEGORIA DE PRODUCTO --
 
-CREATE OR ALTER PROCEDURE dbProducto.BorrarLineaProducto (@idLineaProducto INT)
+CREATE OR ALTER PROCEDURE dbProducto.BorrarCategoriaProducto (@idCategoriaProducto INT)
 AS
 BEGIN
 	-- Comprobar que existe el ID
-    IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
+    IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
 	BEGIN
-		RAISERROR('No existe una linea de producto con el ID especificado.', 16, 1)  
+		RAISERROR('No existe una categoria de producto con el ID especificado.', 16, 1)  
 		RETURN;  
 	END
 
@@ -65,7 +64,7 @@ BEGIN
 
 		-- Declaramos un cursor para seleccionar los idProducto que pertenecen a la categoría de producto de la línea de producto especificada
         DECLARE cur CURSOR FOR 
-        SELECT idProducto FROM dbProducto.Producto WHERE idLineaProducto = @idLineaProducto;
+        SELECT idProducto FROM dbProducto.Producto WHERE idCategoriaProducto = @idCategoriaProducto;
 
 		-- Declaramos la variable para almacenar cada idProducto durante la iteración del cursor
         DECLARE @idProducto INT;
@@ -93,51 +92,6 @@ BEGIN
         DEALLOCATE cur;
 
         -- Inactivar la línea de producto
-        UPDATE dbProducto.LineaProducto
-        SET estado = 0
-        WHERE idLineaProducto = @idLineaProducto;
-
-        COMMIT;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK;
-    END CATCH
-END
-GO
-
-
----------------------------------------------------------------------
--- CATEGORIA DE PRODUCTO --
-
-CREATE OR ALTER PROCEDURE dbProducto.BorrarCategoriaProducto (@idCategoriaProducto INT)
-AS
-BEGIN
-	-- Comprobar que existe el ID
-    IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
-	BEGIN
-		RAISERROR('No existe una categoria de producto con el ID especificado.', 16, 1)  
-		RETURN;  
-	END
-
-	-- Iniciar transaccion, ya que se van a modificar varias tablas
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        -- Inactivar las líneas de producto asociadas (Esto ya inactiva productos también)
-        DECLARE cur CURSOR FOR 
-        SELECT idLineaProducto FROM dbProducto.LineaProducto WHERE idCategoriaProducto = @idCategoriaProducto;
-
-        DECLARE @idLineaProducto INT;
-        OPEN cur;
-        FETCH NEXT FROM cur INTO @idLineaProducto;
-        WHILE @@FETCH_STATUS = 0
-        BEGIN
-            EXEC dbProducto.BorrarLineaProducto @idLineaProducto;
-            FETCH NEXT FROM cur INTO @idLineaProducto;
-        END
-        CLOSE cur;
-        DEALLOCATE cur;
-
-        -- Inactivar la categoría de producto
         UPDATE dbProducto.CategoriaProducto
         SET estado = 0
         WHERE idCategoriaProducto = @idCategoriaProducto;
@@ -149,6 +103,52 @@ BEGIN
     END CATCH
 END
 GO
+
+
+---------------------------------------------------------------------
+-- LINEA DE PRODUCTO --
+
+CREATE OR ALTER PROCEDURE dbProducto.BorrarLineaProducto (@idLineaProducto INT)
+AS
+BEGIN
+	-- Comprobar que existe el ID
+    IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
+	BEGIN
+		RAISERROR('No existe una linea de producto con el ID especificado.', 16, 1)  
+		RETURN;  
+	END
+
+	-- Iniciar transaccion, ya que se van a modificar varias tablas
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        -- Inactivar las categorias de producto asociadas (Esto ya inactiva productos también)
+        DECLARE cur CURSOR FOR 
+        SELECT idCategoriaProducto FROM dbProducto.CategoriaProducto WHERE idLineaProducto = @idLineaProducto;
+
+        DECLARE @idCategoriaProducto INT;
+        OPEN cur;
+        FETCH NEXT FROM cur INTO @idCategoriaProducto;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            EXEC dbProducto.BorrarCategoriaProducto @idCategoriaProducto;
+            FETCH NEXT FROM cur INTO @idCategoriaProducto;
+        END
+        CLOSE cur;
+        DEALLOCATE cur;
+
+        -- Inactivar la categoría de producto
+        UPDATE dbProducto.CategoriaProducto
+        SET estado = 0
+        WHERE idLineaProducto = @idLineaProducto;
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+    END CATCH
+END
+GO
+
 
 ---------------------------------------------------------------------
 -- EMPLEADO --

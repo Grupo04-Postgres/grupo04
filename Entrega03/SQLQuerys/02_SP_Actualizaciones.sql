@@ -13,23 +13,23 @@
 -- Genere store procedures para manejar las actualizaciones
 
 ---------------------------------------------------------------------
-USE master
 USE Com1353G04
 GO
 
----------------------------------------------------------------------
--- CATEGORIA DE PRODUCTO --
 
-CREATE OR ALTER PROCEDURE dbProducto.ActualizarCategoriaProducto
-    @idCategoriaProducto INT,
+---------------------------------------------------------------------
+-- LINEA DE PRODUCTO --
+
+CREATE OR ALTER PROCEDURE dbProducto.ActualizarLineaProducto
+    @idLineaProducto INT,
     @nombre VARCHAR(50)
 AS
 BEGIN
     DECLARE @error VARCHAR(MAX) = '';
 
     -- Validaciones
-    IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
-        SET @error = @error + 'No existe una categoría con el ID especificado. ';
+    IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
+        SET @error = @error + 'No existe una línea con el ID especificado. ';
 
     IF LTRIM(RTRIM(@nombre)) = '' 
         SET @error = @error + 'El nombre no puede estar vacío. ';
@@ -40,31 +40,31 @@ BEGIN
     ELSE
 	BEGIN
         -- Actualización
-        UPDATE dbProducto.CategoriaProducto
+        UPDATE dbProducto.LineaProducto
         SET nombre = @nombre
-        WHERE idCategoriaProducto = @idCategoriaProducto;
+        WHERE idLineaProducto = @idLineaProducto;
 	END
 END
 GO
 
 
 ---------------------------------------------------------------------
--- LINEA DE PRODUCTO --
+-- CATEGORIA DE PRODUCTO --
 
-CREATE OR ALTER PROCEDURE dbProducto.ActualizarLineaProducto
-    @idLineaProducto INT,
+CREATE OR ALTER PROCEDURE dbProducto.ActualizarCategoriaProducto
+    @idCategoriaProducto INT,
     @nombre VARCHAR(50) = NULL,
-    @idCategoriaProducto INT = NULL 
+    @idLineaProducto INT = NULL 
 AS
 BEGIN
     DECLARE @error VARCHAR(MAX) = '';
 
     -- Validaciones
-    IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
-        SET @error = @error + 'No existe una línea de producto con el ID especificado. ';
+    IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
+        SET @error = @error + 'No existe una categoría de producto con el ID especificado. ';
     
-    IF @idCategoriaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
-        SET @error = @error + 'No existe una categoría con el ID especificado. ';
+    IF @idLineaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
+        SET @error = @error + 'No existe una línea con el ID especificado. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
         SET @error = @error + 'El nombre no puede estar vacío.';
@@ -75,11 +75,11 @@ BEGIN
     ELSE
 	BEGIN
         -- Actualización
-        UPDATE dbProducto.LineaProducto
+        UPDATE dbProducto.CategoriaProducto
         SET 
             nombre = COALESCE(@nombre, nombre),
-            idCategoriaProducto = COALESCE(@idCategoriaProducto, idCategoriaProducto)
-        WHERE idLineaProducto = @idLineaProducto;
+            idLineaProducto = COALESCE(@idLineaProducto, idLineaProducto)
+        WHERE idCategoriaProducto = @idCategoriaProducto;
 	END
 END
 GO
@@ -96,7 +96,7 @@ CREATE OR ALTER PROCEDURE dbProducto.ActualizarProducto
     @unidadReferencia CHAR(2) = NULL,
     @fecha DATE = NULL, 
     @cantidadUnitaria VARCHAR(50) = NULL,
-    @idLineaProducto INT = NULL
+    @idCategoriaProducto INT = NULL
 AS
 BEGIN
     DECLARE @error VARCHAR(MAX) = '';
@@ -120,9 +120,9 @@ BEGIN
     IF @cantidadUnitaria IS NOT NULL AND LTRIM(RTRIM(@cantidadUnitaria)) = '' 
         SET @error = @error + 'La cantidad unitaria no puede estar vacía. ';
     
-    IF @idLineaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
-        SET @error = @error + 'No existe una linea de producto con el ID especificado. ';
-   	
+    IF @idCategoriaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
+        SET @error = @error + 'No existe una categoría de producto con el ID especificado. ';
+    	
 	-- Informar errores si los hubo 
     IF @error <> ''
         RAISERROR(@error, 16, 1);
@@ -137,7 +137,7 @@ BEGIN
             unidadReferencia = COALESCE(@unidadReferencia, unidadReferencia),
             fecha = COALESCE(@fecha, fecha),
             cantidadUnitaria = COALESCE(@cantidadUnitaria, cantidadUnitaria),
-            @idLineaProducto = COALESCE(@idLineaProducto, idLineaProducto)
+            idCategoriaProducto = COALESCE(@idCategoriaProducto, idCategoriaProducto)
         WHERE idProducto = @idProducto;
 	END
 END
@@ -149,7 +149,7 @@ GO
 
 CREATE OR ALTER PROCEDURE dbCliente.ActualizarCliente
     @idCliente INT,
-    @cuil CHAR(11) = NULL,
+    @cuil CHAR(13) = NULL,
     @nombre VARCHAR(50) = NULL,
     @apellido VARCHAR(50) = NULL,
     @telefono CHAR(10) = NULL,
@@ -256,9 +256,9 @@ GO
 ---------------------------------------------------------------------
 -- EMPLEADO --
 
-CREATE OR ALTER PROCEDURE dbCliente.ActualizarEmpleado
+CREATE OR ALTER PROCEDURE dbEmpleado.ActualizarEmpleado
     @legajoEmpleado INT,
-    @cuil CHAR(11) = NULL,
+    @cuil CHAR(13) = NULL,
     @nombre VARCHAR(30) = NULL,
     @apellido VARCHAR(30) = NULL,
     @direccion VARCHAR(100) = NULL,

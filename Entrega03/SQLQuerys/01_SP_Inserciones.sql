@@ -13,57 +13,60 @@
 -- Genere store procedures para manejar la inserción
 
 ---------------------------------------------------------------------
-USE master
 USE Com1353G04
 GO
 
 ---------------------------------------------------------------------
 -- Crear funciones de validaciones complejas
-
--- Validar CUIL
-CREATE OR ALTER FUNCTION dbSistema.fnValidarCUIL (@cuil CHAR(11))
+CREATE OR ALTER FUNCTION dbSistema.fnValidarCUIL (@CUIL CHAR(13))
 RETURNS BIT
 AS
 BEGIN
     DECLARE @resultado BIT = 0;
-    DECLARE @dni INT;
-    DECLARE @digito_verificador INT;
-    DECLARE @valido BIT = 1;
+    DECLARE @cuitSinGuiones CHAR(11);
     DECLARE @suma INT = 0;
-    DECLARE @i INT;
+    DECLARE @digitoVerificador INT;
+    DECLARE @digitoCalculado INT;
+    DECLARE @prefijo CHAR(2);
+    DECLARE @multiplicadores TABLE (Posicion INT, Valor INT);
 
-    -- Verificar que tenga la longitud correcta (11 caracteres)
-    IF LEN(@cuil) = 11
+    -- Validar largo y formato básico
+    IF LEN(@CUIL) = 13 AND @CUIL LIKE '[23,24,27,30]-%-%'
     BEGIN
-        -- Extraer DNI y el dígito verificador
-        SET @dni = CAST(SUBSTRING(@cuil, 3, 8) AS INT);
-        SET @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT);
+        -- Eliminar los guiones
+        SET @cuitSinGuiones = REPLACE(@CUIL, '-', '');
 
-        -- Realizar cálculo del dígito verificador
-        DECLARE @peso INT;
+        -- Extraer el prefijo
+        SET @prefijo = LEFT(@cuitSinGuiones, 2);
 
-        -- Array de pesos según la posición
-        DECLARE @pesos TABLE (pos INT, peso INT);
-        INSERT INTO @pesos (pos, peso) VALUES
-        (1, 5), (2, 4), (3, 3), (4, 2), (5, 7), (6, 6), (7, 5), (8, 4);
-
-        -- Sumar la multiplicación de los dígitos del CUIL por los pesos
-        SET @i = 1;
-        WHILE @i <= 8
+        -- Verificar que el prefijo sea válido
+        IF @prefijo IN ('20', '23', '24', '27', '30') 
         BEGIN
-            SET @peso = (SELECT peso FROM @pesos WHERE pos = @i);
-            SET @suma = @suma + (CAST(SUBSTRING(@cuil, @i + 2, 1) AS INT) * @peso);
-            SET @i = @i + 1;
-        END
+            -- Verificar que todos los caracteres sean numéricos
+            IF @cuitSinGuiones NOT LIKE '%[^0-9]%' 
+            BEGIN
+                -- Obtener el dígito verificador real
+                SET @digitoVerificador = CAST(RIGHT(@cuitSinGuiones, 1) AS INT);
 
-        -- Calcular el dígito verificador
-        SET @suma = @suma % 11;
-        SET @digito_verificador = 11 - @suma;
+                -- Multiplicadores para el cálculo
+                INSERT INTO @multiplicadores
+                VALUES (1, 5), (2, 4), (3, 3), (4, 2), (5, 7), 
+                       (6, 6), (7, 5), (8, 4), (9, 3), (10, 2);
 
-        -- Verificar que el dígito calculado sea igual al dígito verificador del CUIL
-        IF @digito_verificador = CAST(SUBSTRING(@cuil, 11, 1) AS INT)
-        BEGIN
-            SET @resultado = 1;  -- CUIL válido
+                -- Cálculo de la suma ponderada
+                SELECT @suma = @suma + 
+                    (CAST(SUBSTRING(@cuitSinGuiones, m.Posicion, 1) AS INT) * m.Valor)
+                FROM @multiplicadores m;
+
+                -- Cálculo del dígito verificador esperado
+                SET @digitoCalculado = 11 - (@suma % 11);
+                IF @digitoCalculado = 11 SET @digitoCalculado = 0;
+                ELSE IF @digitoCalculado = 10 SET @digitoCalculado = -1; -- No válido
+
+                -- Comparar con el dígito ingresado
+                IF @digitoCalculado >= 0 AND @digitoVerificador = @digitoCalculado
+                    SET @resultado = 1;
+            END
         END
     END
 
@@ -73,9 +76,9 @@ GO
 
 
 ---------------------------------------------------------------------
--- CATEGORIA DE PRODUCTO --
+-- LINEA DE PRODUCTO --
 
-CREATE OR ALTER PROCEDURE insertarCategoriaProducto
+CREATE OR ALTER PROCEDURE dbProducto.InsertarLineaProducto
     @nombre VARCHAR(50)
 AS
 BEGIN
@@ -87,18 +90,18 @@ BEGIN
     END
 
     -- Inserción
-    INSERT INTO dbProducto.CategoriaProducto (nombre, estado)
+    INSERT INTO dbProducto.LineaProducto (nombre, estado)
     VALUES (@nombre, 1);
 END
 GO
 
 
 ---------------------------------------------------------------------
--- LINEA DE PRODUCTO --
+-- CATEGORIA DE PRODUCTO --
 
-CREATE OR ALTER PROCEDURE dbProducto.InsertarLineaProducto
+CREATE OR ALTER PROCEDURE dbProducto.InsertarCategoriaProducto
 	@nombre VARCHAR(50),
-	@idCategoriaProducto INT
+	@idLineaProducto INT
 AS
 BEGIN
     IF LTRIM(RTRIM(@nombre)) = ''
@@ -106,8 +109,8 @@ BEGIN
     ELSE
 	BEGIN
 		-- Inserción
-		INSERT INTO dbProducto.LineaProducto(nombre, idCategoriaProducto, estado) 
-		VALUES (@nombre, @idCategoriaProducto, 1)
+		INSERT INTO dbProducto.CategoriaProducto(nombre, idLineaProducto, estado) 
+		VALUES (@nombre, @idLineaProducto, 1)
 	END
 END
 GO
@@ -123,7 +126,7 @@ CREATE OR ALTER PROCEDURE dbProducto.InsertarProducto
     @unidadReferencia CHAR(2) = NULL,
     @fecha DATE = NULL, 
     @cantidadUnitaria VARCHAR(50) = NULL,
-    @idLineaProducto INT 
+    @idCategoriaProducto INT 
 AS
 BEGIN
     -- Validaciones
@@ -144,8 +147,8 @@ BEGIN
     IF @cantidadUnitaria IS NOT NULL AND LTRIM(RTRIM(@cantidadUnitaria)) = '' 
         SET @error = @error + 'La cantidad unitaria no puede estar vacía. ';
     
-    IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
-        SET @error = @error + 'No existe una linea de producto con el ID especificado. ';
+    IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
+        SET @error = @error + 'No existe una categoría de producto con el ID especificado. ';
    	
 	-- Informar errores si los hubo 
     IF @error <> ''
@@ -153,8 +156,8 @@ BEGIN
     ELSE
 	BEGIN
 		-- Inserción
-		INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, cantidadUnitaria, idLineaProducto, estado)
-		VALUES (@nombre, @precio, @precioReferencia, @unidadReferencia, @fecha, @cantidadUnitaria, @idLineaProducto, 1)
+		INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, cantidadUnitaria, idCategoriaProducto, estado)
+		VALUES (@nombre, @precio, @precioReferencia, @unidadReferencia, @fecha, @cantidadUnitaria, @idCategoriaProducto, 1)
 	END
 
 END
@@ -165,7 +168,7 @@ GO
 -- CLIENTE --
 
 CREATE OR ALTER PROCEDURE dbCliente.InsertarCliente
-	@cuil CHAR(11),
+	@cuil CHAR(13),
 	@nombre VARCHAR(50),
 	@apellido VARCHAR(50),
 	@telefono CHAR(10),
@@ -243,8 +246,8 @@ BEGIN
     ELSE
 	BEGIN
 		-- Inserción
-		INSERT INTO dbSucursal.Sucursal(ciudad, sucursal, direccion, telefono, horario) 
-		VALUES (@ciudad, @sucursal, @direccion, @telefono, @horario)
+		INSERT INTO dbSucursal.Sucursal(ciudad, sucursal, direccion, telefono, horario, estado) 
+		VALUES (@ciudad, @sucursal, @direccion, @telefono, @horario, 0)
 	END
 END
 GO
@@ -253,8 +256,8 @@ GO
 ---------------------------------------------------------------------
 -- EMPLEADO --
 
-CREATE OR ALTER PROCEDURE dbCliente.InsertarEmpleado
-    @cuil CHAR(11),
+CREATE OR ALTER PROCEDURE dbEmpleado.InsertarEmpleado
+    @cuil CHAR(13),
     @nombre VARCHAR(30),
     @apellido VARCHAR(30),
     @direccion VARCHAR(100),
@@ -401,8 +404,7 @@ CREATE OR ALTER PROCEDURE dbVenta.InsertarDetalleVenta
     @idVenta INT,
     @idProducto INT,
     @cantidad INT,
-    @precioUnitarioAlMomentoDeLaVenta DECIMAL(10,2),
-    @subtotal DECIMAL(10,2)
+    @precioUnitarioAlMomentoDeLaVenta DECIMAL(10,2)
 AS
 BEGIN
     DECLARE @error VARCHAR(MAX) = '';
@@ -414,8 +416,6 @@ BEGIN
     IF @precioUnitarioAlMomentoDeLaVenta IS NOT NULL AND @precioUnitarioAlMomentoDeLaVenta <= 0
         SET @error = @error + 'El precio unitario debe ser mayor a 0. ';
     
-    IF @subtotal IS NOT NULL AND @subtotal <= 0
-        SET @error = @error + 'El subtotal debe ser mayor a 0. ';
     
     -- Informar errores si los hubo
     IF @error <> ''
@@ -431,7 +431,7 @@ BEGIN
 
 		-- Inserción
 		INSERT INTO dbVenta.DetalleVenta (idDetalleVenta, idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
-		VALUES (@sigIdDetalleVenta, @idVenta, @idProducto, @cantidad, @precioUnitarioAlMomentoDeLaVenta, @subtotal);
+		VALUES (@sigIdDetalleVenta, @idVenta, @idProducto, @cantidad, @precioUnitarioAlMomentoDeLaVenta, @cantidad * @precioUnitarioAlMomentoDeLaVenta);
 	END
 END
 GO
