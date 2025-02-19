@@ -105,10 +105,24 @@ GO
 EXEC dbProducto.InsertarProducto @nombre ='Banana', @precio = 26, @idLineaProducto = ;
 GO
 
--- Prueba 5: idLineaProducto invalido (Valor No numerico)
+-- Prueba 6: idLineaProducto invalido (Valor No numerico)
 EXEC dbProducto.InsertarProducto @nombre ='Banana', @precio = 26, @idLineaProducto = 'abc';
 GO
 
+-- Prueba 7: PrecioReferencia invalido (Valor menor a cero)
+EXEC dbProducto.InsertarProducto @nombre ='Banana', @precio = 26, @idLineaProducto = 1, @precioReferencia =-1;
+GO
+
+-- Prueba 8: PrecioReferencia invalido (Valor No numerico)
+EXEC dbProducto.InsertarProducto @nombre ='Banana', @precio = 26, @idLineaProducto = 1, @precioReferencia ='abc';
+GO
+
+-- Prueba 9: PrecioReferencia invalido (Valor vacio)
+EXEC dbProducto.InsertarProducto @nombre ='Banana', @precio = 26, @idLineaProducto = 1, @precioReferencia = ;
+GO
+
+   
+ 
 ---------------------------------------------------------------------
 -- CLIENTE --
 
