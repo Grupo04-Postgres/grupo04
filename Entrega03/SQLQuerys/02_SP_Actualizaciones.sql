@@ -4,18 +4,17 @@
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
-   -- Brenda Schereik 45128557
-   --
-   --
-   --
+   -- Schereik, Brenda 45128557
+   -- Turri, Teo Francis 42819058
 
 ---------------------------------------------------------------------
--- Genere store procedures para manejar las actualizaciones
+-- Consigna: Genere store procedures para manejar las actualizaciones
 
 ---------------------------------------------------------------------
 USE Com1353G04
 GO
 
+-------------------------- ACTUALIZACIONES --------------------------
 
 ---------------------------------------------------------------------
 -- LINEA DE PRODUCTO --
@@ -262,9 +261,8 @@ CREATE OR ALTER PROCEDURE dbEmpleado.ActualizarEmpleado
     @nombre VARCHAR(30) = NULL,
     @apellido VARCHAR(30) = NULL,
     @direccion VARCHAR(100) = NULL,
-    @telefono CHAR(10) = NULL,
-    @emailPersonal VARCHAR(30) = NULL,
-    @emailEmpresa VARCHAR(30) = NULL,
+    @emailPersonal VARCHAR(70) = NULL,
+    @emailEmpresa VARCHAR(70) = NULL,
     @turno VARCHAR(16) = NULL,
     @cargo VARCHAR(30) = NULL,
     @idSucursal INT = NULL
@@ -284,9 +282,6 @@ BEGIN
     
     IF @apellido IS NOT NULL AND LTRIM(RTRIM(@apellido)) = ''
         SET @error = @error + 'El apellido no puede estar vacío. ';
-    
-    IF @telefono IS NOT NULL AND LTRIM(RTRIM(@telefono)) = ''
-        SET @error = @error + 'El teléfono no puede estar vacío. ';
     
     IF @emailPersonal IS NOT NULL AND LTRIM(RTRIM(@emailPersonal)) = ''
         SET @error = @error + 'El email personal no puede estar vacío. ';
@@ -315,7 +310,6 @@ BEGIN
             nombre = COALESCE(@nombre, nombre),
             apellido = COALESCE(@apellido, apellido),
             direccion = COALESCE(@direccion, direccion),
-            telefono = COALESCE(@telefono, telefono),
             emailPersonal = COALESCE(@emailPersonal, emailPersonal),
             emailEmpresa = COALESCE(@emailEmpresa, emailEmpresa),
             turno = COALESCE(@turno, turno),
@@ -427,14 +421,17 @@ BEGIN
     
     IF @identificadorPago IS NOT NULL AND LTRIM(RTRIM(@identificadorPago)) = ''
         SET @error = @error + 'El identificador de pago no puede estar vacío. ';
+	
+	IF @idCliente IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbCliente.Cliente WHERE idCliente = @idCliente)
+        SET @error = @error + 'No existe un cliente con el ID especificado. ';
 
-	IF NOT EXISTS (SELECT 1 FROM dbEmpleado.Empleado WHERE legajoEmpleado = @legajoEmpleado)
+	IF @legajoEmpleado IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbEmpleado.Empleado WHERE legajoEmpleado = @legajoEmpleado)
         SET @error = @error + 'No existe un empleado con el ID especificado. ';
 
-	IF NOT EXISTS (SELECT 1 FROM dbVenta.Factura WHERE idFactura = @idFactura)
+	IF @idFactura IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbVenta.Factura WHERE idFactura = @idFactura)
         SET @error = @error + 'No existe una factura con el ID especificado. ';
 
-	IF NOT EXISTS (SELECT 1 FROM dbVenta.MetodoPago WHERE idMetodoPago = @idMetodoPago)
+	IF @idMetodoPago IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbVenta.MetodoPago WHERE idMetodoPago = @idMetodoPago)
         SET @error = @error + 'No existe un metodo de pago con el ID especificado. ';
     
     -- Informar errores si los hubo

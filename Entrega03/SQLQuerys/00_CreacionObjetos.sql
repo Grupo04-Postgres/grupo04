@@ -1,16 +1,14 @@
----------------------------------------------------------------------
+ï»¿---------------------------------------------------------------------
 -- Fecha de entrega
 -- Materia: Base de Datos Aplicada
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
-   -- Brenda Schereik 45128557
-   --
-   --
-   --
+   -- Schereik, Brenda 45128557
+   -- Turri, Teo Francis 42819058
 
 ---------------------------------------------------------------------
--- Cree la base de datos, entidades y relaciones. Incluya restricciones y claves.
+-- Consigna: Cree la base de datos, entidades y relaciones. Incluya restricciones y claves.
 
 ---------------------------------------------------------------------
 -- Crear base de datos si no existe
@@ -54,8 +52,8 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'dbSistema')
     EXEC('CREATE SCHEMA dbSistema');
 GO
 
--- La instrucción CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
--- Por eso, se usa EXEC para ejecutar una cadena dinámica que contiene la instrucción CREATE SCHEMA.
+-- La instrucciÃ³n CREATE SCHEMA no se puede ejecutar directamente en un bloque condicional. 
+-- Por eso, se usa EXEC para ejecutar una cadena dinÃ¡mica que contiene la instrucciÃ³n CREATE SCHEMA.
 
 ---------------------------------------------------------------------
 -- Borrar tablas si ya existen
@@ -70,9 +68,7 @@ IF OBJECT_ID('dbCliente.Cliente', 'U') IS NOT NULL DROP TABLE dbCliente.Cliente
 IF OBJECT_ID('dbProducto.Producto', 'U') IS NOT NULL DROP TABLE dbProducto.Producto
 IF OBJECT_ID('dbProducto.CategoriaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.CategoriaProducto
 IF OBJECT_ID('dbProducto.LineaProducto', 'U') IS NOT NULL DROP TABLE dbProducto.LineaProducto
-
 GO
-
 
 ---------------------------------------------------------------------
 -- Crear tablas
@@ -128,15 +124,14 @@ CREATE TABLE dbSucursal.Sucursal (
 GO
 
 CREATE TABLE dbEmpleado.Empleado (
-	legajoEmpleado INT PRIMARY KEY,
+	legajoEmpleado INT PRIMARY KEY, --IDENTITY BORRADO
 	cuil CHAR(13) NOT NULL UNIQUE,
 	nombre VARCHAR(30) NOT NULL,
 	apellido VARCHAR(30) NOT NULL,
 	direccion VARCHAR(100) NOT NULL,
-	--telefono CHAR(10) NOT NULL,
-	emailPersonal varchar(70) NOT NULL, --VARCHAR PASA DE 30 -> 70
-	emailEmpresa varchar(70) NOT NULL,
-	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- Mañana-Tarde-JornadaCompleta
+	emailPersonal varchar(70) NOT NULL, --VARCHAR AMPLIADO
+	emailEmpresa varchar(70) NOT NULL, --VARCHAR AMPLIADO
+	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- ManÌƒana-Tarde-JornadaCompleta
 	cargo varchar(30) NOT NULL,
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,

@@ -4,73 +4,30 @@
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
-   -- Brenda Schereik 45128557
-   --
-   --
-   --
+   -- Schereik, Brenda 45128557
+   -- Turri, Teo Francis 42819058
 
 ---------------------------------------------------------------------
--- Genere store procedures para manejar la inserción
+-- Consigna: Genere store procedures para manejar la inserción
 
 ---------------------------------------------------------------------
 USE Com1353G04
 GO
 
+---------------------------- INSERCIONES ----------------------------
+
 ---------------------------------------------------------------------
--- Crear funciones de validaciones complejas
-CREATE OR ALTER FUNCTION dbSistema.fnValidarCUIL (@CUIL CHAR(13))
+-- FUNCIONES --
+
+CREATE OR ALTER FUNCTION dbSistema.fnValidarCUIL (@cuil VARCHAR(13))
 RETURNS BIT
 AS
 BEGIN
-    DECLARE @resultado BIT = 0;
-    DECLARE @cuitSinGuiones CHAR(11);
-    DECLARE @suma INT = 0;
-    DECLARE @digitoVerificador INT;
-    DECLARE @digitoCalculado INT;
-    DECLARE @prefijo CHAR(2);
-    DECLARE @multiplicadores TABLE (Posicion INT, Valor INT);
-
-    -- Validar largo y formato básico
-    IF LEN(@CUIL) = 13 AND @CUIL LIKE '[23,24,27,30]-%-%'
+    IF @cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
     BEGIN
-        -- Eliminar los guiones
-        SET @cuitSinGuiones = REPLACE(@CUIL, '-', '');
-
-        -- Extraer el prefijo
-        SET @prefijo = LEFT(@cuitSinGuiones, 2);
-
-        -- Verificar que el prefijo sea válido
-        IF @prefijo IN ('20', '23', '24', '27', '30') 
-        BEGIN
-            -- Verificar que todos los caracteres sean numéricos
-            IF @cuitSinGuiones NOT LIKE '%[^0-9]%' 
-            BEGIN
-                -- Obtener el dígito verificador real
-                SET @digitoVerificador = CAST(RIGHT(@cuitSinGuiones, 1) AS INT);
-
-                -- Multiplicadores para el cálculo
-                INSERT INTO @multiplicadores
-                VALUES (1, 5), (2, 4), (3, 3), (4, 2), (5, 7), 
-                       (6, 6), (7, 5), (8, 4), (9, 3), (10, 2);
-
-                -- Cálculo de la suma ponderada
-                SELECT @suma = @suma + 
-                    (CAST(SUBSTRING(@cuitSinGuiones, m.Posicion, 1) AS INT) * m.Valor)
-                FROM @multiplicadores m;
-
-                -- Cálculo del dígito verificador esperado
-                SET @digitoCalculado = 11 - (@suma % 11);
-                IF @digitoCalculado = 11 SET @digitoCalculado = 0;
-                ELSE IF @digitoCalculado = 10 SET @digitoCalculado = -1; -- No válido
-
-                -- Comparar con el dígito ingresado
-                IF @digitoCalculado >= 0 AND @digitoVerificador = @digitoCalculado
-                    SET @resultado = 1;
-            END
-        END
+        RETURN 1;
     END
-
-    RETURN @resultado;
+	RETURN 0;
 END;
 GO
 
@@ -104,8 +61,19 @@ CREATE OR ALTER PROCEDURE dbProducto.InsertarCategoriaProducto
 	@idLineaProducto INT
 AS
 BEGIN
+    -- Validaciones
+    DECLARE @error VARCHAR(MAX) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
+        SET @error = @error + 'No existe una linea de producto con el ID especificado. ';
+
     IF LTRIM(RTRIM(@nombre)) = ''
-        RAISERROR('El nombre no puede estar vacío. ', 16, 1);
+        SET @error = @error + 'El nombre no puede estar vacío. ';
+   
+
+	-- Informar errores si los hubo 
+    IF @error <> ''
+        RAISERROR(@error, 16, 1);
     ELSE
 	BEGIN
 		-- Inserción
@@ -247,7 +215,7 @@ BEGIN
 	BEGIN
 		-- Inserción
 		INSERT INTO dbSucursal.Sucursal(ciudad, sucursal, direccion, telefono, horario, estado) 
-		VALUES (@ciudad, @sucursal, @direccion, @telefono, @horario, 0)
+		VALUES (@ciudad, @sucursal, @direccion, @telefono, @horario, 1)
 	END
 END
 GO
@@ -257,13 +225,13 @@ GO
 -- EMPLEADO --
 
 CREATE OR ALTER PROCEDURE dbEmpleado.InsertarEmpleado
+	@legajoEmpleado INT,
     @cuil CHAR(13),
     @nombre VARCHAR(30),
     @apellido VARCHAR(30),
     @direccion VARCHAR(100),
-    @telefono CHAR(10),
-    @emailPersonal VARCHAR(30),
-    @emailEmpresa VARCHAR(30),
+    @emailPersonal VARCHAR(70),
+    @emailEmpresa VARCHAR(70),
     @turno VARCHAR(16),
     @cargo VARCHAR(30),
     @fechaAlta DATE,
@@ -281,9 +249,6 @@ BEGIN
     
     IF LTRIM(RTRIM(@apellido)) = ''
         SET @error = @error + 'El apellido no puede estar vacío. ';
-    
-    IF LTRIM(RTRIM(@telefono)) = ''
-        SET @error = @error + 'El teléfono no puede estar vacío. ';
     
     IF LTRIM(RTRIM(@emailPersonal)) = ''
         SET @error = @error + 'El email personal no puede estar vacío. ';
@@ -306,8 +271,8 @@ BEGIN
     ELSE
     BEGIN
 		 -- Inserción
-		INSERT INTO dbEmpleado.Empleado (cuil, nombre, apellido, direccion, telefono, emailPersonal, emailEmpresa, turno, cargo, fechaAlta, idSucursal)
-		VALUES (@cuil, @nombre, @apellido, @direccion, @telefono, @emailPersonal, @emailEmpresa, @turno, @cargo, @fechaAlta, @idSucursal);
+		INSERT INTO dbEmpleado.Empleado (legajoEmpleado, cuil, nombre, apellido, direccion, emailPersonal, emailEmpresa, turno, cargo, fechaAlta, idSucursal)
+		VALUES (@legajoEmpleado, @cuil, @nombre, @apellido, @direccion, @emailPersonal, @emailEmpresa, @turno, @cargo, @fechaAlta, @idSucursal);
 	END
 END
 GO
