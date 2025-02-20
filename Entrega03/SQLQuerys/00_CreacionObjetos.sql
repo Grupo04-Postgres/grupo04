@@ -128,14 +128,14 @@ CREATE TABLE dbSucursal.Sucursal (
 GO
 
 CREATE TABLE dbEmpleado.Empleado (
-	legajoEmpleado INT IDENTITY(1,1) PRIMARY KEY,
+	legajoEmpleado INT PRIMARY KEY,
 	cuil CHAR(13) NOT NULL UNIQUE,
 	nombre VARCHAR(30) NOT NULL,
 	apellido VARCHAR(30) NOT NULL,
 	direccion VARCHAR(100) NOT NULL,
-	telefono CHAR(10) NOT NULL,
-	emailPersonal varchar(30) NOT NULL,
-	emailEmpresa varchar(30) NOT NULL,
+	--telefono CHAR(10) NOT NULL,
+	emailPersonal varchar(70) NOT NULL, --VARCHAR PASA DE 30 -> 70
+	emailEmpresa varchar(70) NOT NULL,
 	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- Mañana-Tarde-JornadaCompleta
 	cargo varchar(30) NOT NULL,
 	fechaAlta DATE NOT NULL,
