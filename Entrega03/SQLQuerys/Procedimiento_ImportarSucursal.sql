@@ -7,8 +7,9 @@ EXEC sp_configure 'Ad Hoc Distributed Queries', 1;
 RECONFIGURE;
 
 
+
 -- Procedimiento para importar sucursales desde un archivo Excel
-CREATE PROCEDURE CargarSucursales
+CREATE PROCEDURE dbSucursal.CargarSucursales
     @RutaArchivo VARCHAR(1024)
 AS
 BEGIN
@@ -32,14 +33,25 @@ BEGIN
         Telefono VARCHAR(255)
     );
 
-    -- Comando para importar datos desde el archivo Excel
-    DECLARE @CargaDatosArchivo VARCHAR(1024) = '
-        INSERT INTO #DatosSucursalArchivo (Ciudad, Sucursal, Direccion, Horario, Telefono)
-        SELECT Ciudad, [Reemplazar por] AS Sucursal, Direccion, Horario, Telefono
-        FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
-                         ''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'', 
-                         ''SELECT * FROM [sucursal$]'');
-    ';
+	BEGIN TRY
+		-- Comando para importar datos desde el archivo Excel
+		DECLARE @CargaDatosArchivo VARCHAR(1024) = '
+			INSERT INTO #DatosSucursalArchivo (Ciudad, Sucursal, Direccion, Horario, Telefono)
+			SELECT Ciudad, [Reemplazar por] AS Sucursal, Direccion, Horario, Telefono
+			FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+							 ''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'', 
+							 ''SELECT * FROM [sucursal$]'');
+		';
+    
+		-- Intentamos ejecutar la consulta
+		EXEC (@CargaDatosArchivo);
+		PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
+	END TRY
+	BEGIN CATCH
+		-- Si ocurre un error (por ejemplo, archivo inválido), capturamos el mensaje de error
+		PRINT 'Error: El archivo no es válido o no se puede acceder.';
+		PRINT ERROR_MESSAGE();
+	END CATCH
     
     EXEC (@CargaDatosArchivo);
 
@@ -55,7 +67,7 @@ BEGIN
     INTO @Resultados (ActionType, Ciudad, Sucursal, Direccion, Horario, Telefono)
 
     FROM dbSucursal.Sucursal AS target
-    JOIN #DatosSucursalArchivo AS source ON target.Ciudad = source.Ciudad
+    JOIN #DatosSucursalArchivo AS source ON target.Ciudad = source.Ciudad AND target.sucursal = source.Sucursal
     WHERE target.Sucursal != source.Sucursal 
        OR target.Direccion != source.Direccion 
        OR target.Horario != source.Horario 
@@ -78,6 +90,9 @@ BEGIN
     -- Mostrar los resultados de la operación
     SELECT * FROM dbSucursal.Sucursal;
     SELECT * FROM @Resultados;
+
+
+	DROP TABLE #DatosSucursalArchivo;
 END;
 
 

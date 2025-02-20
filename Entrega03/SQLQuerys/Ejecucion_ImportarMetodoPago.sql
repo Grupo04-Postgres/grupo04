@@ -35,7 +35,6 @@ SET @RutaArchivoAbsoluta = @RutaBase + @RutaEnRepositorio;
 
 SELECT @RutaArchivoAbsoluta AS RutaIngresada;
 
-
 -- Ejecutar el procedimiento con la ruta del archivo
-EXEC dbSucursal.CargarSucursales @RutaArchivoAbsoluta;
+EXEC dbVenta.CargarMetodosDePago @RutaArchivoAbsoluta;
 
