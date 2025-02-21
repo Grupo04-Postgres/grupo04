@@ -282,6 +282,7 @@ GO
 -- FACTURA --
 
 CREATE OR ALTER PROCEDURE dbVenta.InsertarFactura
+	@idFactura CHAR(11),
     @tipoFactura CHAR,
     @estado CHAR,
     @fecha DATE,
@@ -292,6 +293,9 @@ BEGIN
     DECLARE @error VARCHAR(MAX) = '';
 
     -- Validaciones
+	IF @idFactura IS NOT NULL AND @idFactura NOT LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]' -- ej: 750-67-8428
+        SET @error = @error + 'El ID de factura no es valido, debe ser xxx-xx-xxxx. ';
+
     IF @tipoFactura IS NOT NULL AND @tipoFactura NOT IN ('A', 'B', 'C')
         SET @error = @error + 'El tipo de factura debe ser A, B o C. ';
     
@@ -307,8 +311,8 @@ BEGIN
     ELSE
     BEGIN
 		-- Inserción
-		INSERT INTO dbVenta.Factura (tipoFactura, estado, fecha, hora, total)
-		VALUES (@tipoFactura, @estado, @fecha, @hora, @total);
+		INSERT INTO dbVenta.Factura (idFactura, tipoFactura, estado, fecha, hora, total)
+		VALUES (@idFactura, @tipoFactura, @estado, @fecha, @hora, @total);
 	END
 END
 GO
@@ -344,7 +348,7 @@ CREATE OR ALTER PROCEDURE dbVenta.InsertarVenta
     @identificadorPago VARCHAR(30),
     @legajoEmpleado INT,
     @idCliente INT,
-    @idFactura INT,
+    @idFactura CHAR(11),
     @idMetodoPago INT
 AS
 BEGIN

@@ -288,24 +288,24 @@ EXEC dbEmpleado.ActualizarEmpleado @legajoEmpleado = 99, @turno = 'TT'
 -- Inicial: tipoFactora = 'A', estado = 'E', fecha = '2025-01-10', hora = '12:30:00.0000000', total = '1200.50'
 -- Esperado: tipoFactora = 'B', estado = 'P', fecha = '2025-02-20', hora = '09:15:00.0000000', total = '1.25'
 SELECT * FROM dbVenta.Factura 
-EXEC dbVenta.ActualizarFactura @idFactura = 1, @tipoFactura = 'B', @estado = 'P', @fecha = '2025-02-20', @hora = '09:15:00.0000000', @total = 1.25;
+EXEC dbVenta.ActualizarFactura @idFactura = '222-22-2222', @tipoFactura = 'B', @estado = 'P', @fecha = '2025-02-20', @hora = '09:15:00.0000000', @total = 1.25;
 SELECT * FROM dbVenta.Factura 
 
 -- Prueba 2: Intentar actualizar tipoFactura invalida (fuera de las opciones)
 -- Esperado: Error: "El tipo de factura debe ser A, B o C."
-EXEC dbVenta.ActualizarFactura @idFactura = 1, @tipoFactura = 'X';
+EXEC dbVenta.ActualizarFactura @idFactura = '222-22-2222', @tipoFactura = 'X';
 
 -- Prueba 3: Intentar actualizar estado invalido (fuera de las opciones)
 -- Esperado: Error: "El estado debe ser E, P o C."
-EXEC dbVenta.ActualizarFactura @idFactura = 1, @estado = 'X';
+EXEC dbVenta.ActualizarFactura @idFactura = '222-22-2222', @estado = 'X';
 
 -- Prueba 4: Intentar actualizar total invalido (negativo)
 -- Esperado: Error: "El total debe ser mayor a 0. "
-EXEC dbVenta.ActualizarFactura @idFactura = 1, @total = -1;
+EXEC dbVenta.ActualizarFactura @idFactura = '222-22-2222', @total = -1;
 
 -- Prueba 5: Intentar actualizar factura no existente
 -- Esperado: Error: "No existe una factura con el ID especificado."
-EXEC dbVenta.ActualizarFactura @idFactura = 99, @tipoFactura = 'A';
+EXEC dbVenta.ActualizarFactura @idFactura = '999-99-9999', @tipoFactura = 'A';
 
 
 ---------------------------------------------------------------------
@@ -347,7 +347,7 @@ EXEC dbVenta.ActualizarVenta @idVenta = 1, @legajoEmpleado = 99;
 
 -- Prueba 4: Intentar actualizar una factura inexistente.
 -- Esperado: Error: "No existe una factura con el ID especificado."
-EXEC dbVenta.ActualizarVenta @idVenta = 1, @idFactura = 99;
+EXEC dbVenta.ActualizarVenta @idVenta = 1, @idFactura = '999-99-9999';
 
 -- Prueba 5: Intentar actualizar un metodo de pago inexistente.
 -- Esperado: Error: "No existe un  con el ID especificado."

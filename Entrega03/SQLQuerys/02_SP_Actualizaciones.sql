@@ -325,7 +325,7 @@ GO
 -- FACTURA --
 
 CREATE OR ALTER PROCEDURE dbVenta.ActualizarFactura
-    @idFactura INT,
+    @idFactura CHAR(11),
     @tipoFactura CHAR = NULL,
     @estado CHAR = NULL,
     @fecha DATE = NULL,
@@ -409,7 +409,7 @@ CREATE OR ALTER PROCEDURE dbVenta.ActualizarVenta
     @identificadorPago VARCHAR(30) = NULL,
     @legajoEmpleado INT = NULL,
     @idCliente INT = NULL,
-    @idFactura INT = NULL,
+    @idFactura CHAR(11) = NULL,
     @idMetodoPago INT = NULL
 AS
 BEGIN

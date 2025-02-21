@@ -142,15 +142,19 @@ EXEC dbEmpleado.InsertarEmpleado 3, '30-32345678-6', 'Jose', 'Gonzales', 'Calle 
 
 -- Prueba 1: Insertar una factura válida.
 -- Esperado: Inserción exitosa.
-EXEC dbVenta.InsertarFactura 'A', 'E', '2025-01-10', '12:30', 1200.50;
+EXEC dbVenta.InsertarFactura '222-22-2222', 'A', 'E', '2025-01-10', '12:30', 1200.50;
 
 -- Prueba 2: Intentar insertar con tipo de factura inválido.
 -- Esperado: Error 'El tipo de factura debe ser A, B o C.'
-EXEC dbVenta.InsertarFactura 'X', 'E', '2025-01-10', '12:30', 1200.50;
+EXEC dbVenta.InsertarFactura '222-22-2223', 'X', 'E', '2025-01-10', '12:30', 1200.50;
 
 -- Prueba 3: Intentar insertar con total <= 0.
 -- Esperado: Error 'El total debe ser mayor a 0.'
-EXEC dbVenta.InsertarFactura 'B', 'P', '2025-01-10', '12:30', -500;
+EXEC dbVenta.InsertarFactura '222-22-2224', 'B', 'P', '2025-01-10', '12:30', -500;
+
+-- Prueba 1: Intentar insertar una factura con ID invalido.
+-- Esperado: Error: 'El ID de factura no es valido, debe ser xxx-xx-xxxx. '
+EXEC dbVenta.InsertarFactura '2222222', 'A', 'E', '2025-01-10', '12:30', 1200.50;
 
 
 ---------------------------------------------------------------------
@@ -170,11 +174,11 @@ EXEC dbVenta.InsertarMetodoPago '   ';
 
 -- Prueba 1: Insertar una venta válida.
 -- Esperado: Inserción exitosa.
-EXEC dbVenta.InsertarVenta '2025-01-10', '12:30', 'AAA', 1, 1, 1, 1;
+EXEC dbVenta.InsertarVenta '2025-01-10', '12:30', 'AAA', 1, 1, '222-22-2222', 1;
 
 -- Prueba 2: Intentar insertar con identificador de pago vacío.
 -- Esperado: Error 'El identificador de pago no puede estar vacio.'
-EXEC dbVenta.InsertarVenta '2025-01-10', '12:30', '  ', 1, 1, 1, 1;
+EXEC dbVenta.InsertarVenta '2025-01-10', '12:30', '  ', 1, 1, '222-22-2222', 1;
 
 
 ---------------------------------------------------------------------

@@ -115,7 +115,7 @@ GO
 CREATE TABLE dbSucursal.Sucursal (
 	idSucursal INT IDENTITY(1,1) PRIMARY KEY,
 	ciudad VARCHAR(50) NOT NULL,
-	sucursal VARCHAR(50) NOT NULL,
+	sucursal VARCHAR(50) NOT NULL UNIQUE,
 	direccion VARCHAR(100) NOT NULL,
 	telefono CHAR(10) NOT NULL,
 	horario CHAR(50) NOT NULL,
@@ -140,7 +140,7 @@ CREATE TABLE dbEmpleado.Empleado (
 GO
 
 CREATE TABLE dbVenta.Factura (
-	idFactura INT IDENTITY(1,1) PRIMARY KEY,
+	idFactura CHAR(11) PRIMARY KEY,
 	tipoFactura CHAR NOT NULL CHECK(tipoFactura IN ('A','B','C')),
 	estado CHAR NOT NULL CHECK(estado IN ('E','P','C')),  -- Emitida-Pagada-Cancelada,
 	fecha DATE NOT NULL,
@@ -163,7 +163,7 @@ CREATE TABLE dbVenta.Venta (
 	identificadorPago varchar(30),
 	legajoEmpleado INT NOT NULL REFERENCES dbEmpleado.Empleado(legajoEmpleado),
 	idCliente INT NOT NULL REFERENCES dbCliente.Cliente(idCliente),
-	idFactura INT NOT NULL REFERENCES dbVenta.Factura(idFactura),
+	idFactura CHAR(11) NOT NULL REFERENCES dbVenta.Factura(idFactura),
 	idMetodoPago INT NOT NULL REFERENCES dbVenta.MetodoPago(idMetodoPago)
 )
 GO
