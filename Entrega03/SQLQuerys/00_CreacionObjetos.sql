@@ -76,7 +76,7 @@ GO
 CREATE TABLE dbProducto.LineaProducto (
 	idLineaProducto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(50) NOT NULL UNIQUE,
-	estado BIT NOT NULL
+	estado BIT NOT NULL DEFAULT 1
 )
 GO
 
@@ -84,7 +84,7 @@ CREATE TABLE dbProducto.CategoriaProducto (
 	idCategoriaProducto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(50) NOT NULL UNIQUE,
 	idLineaProducto INT NOT NULL REFERENCES dbProducto.LineaProducto(idLineaProducto),
-	estado BIT NOT NULL
+	estado BIT NOT NULL DEFAULT 1
 )
 GO
 
