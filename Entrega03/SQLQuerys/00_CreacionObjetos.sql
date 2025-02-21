@@ -97,7 +97,7 @@ CREATE TABLE dbProducto.Producto (
 	fecha date,						-- catalogo.csv
 	cantidadUnitaria varchar(50),   -- productos_importados.xlsx
 	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto),
-	estado BIT NOT NULL
+	estado BIT NOT NULL DEFAULT 1
 )
 GO
 
