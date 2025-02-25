@@ -45,11 +45,11 @@ BEGIN
     
 		-- Intentamos ejecutar la consulta
 		EXEC (@CargaDatosArchivo);
-		PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
+		PRINT 'El archivo Excel es vÃ¡lido y los datos fueron cargados correctamente.';
 	END TRY
 	BEGIN CATCH
-		-- Si ocurre un error (por ejemplo, archivo inválido), capturamos el mensaje de error
-		PRINT 'Error: El archivo no es válido o no se puede acceder.';
+		-- Si ocurre un error (por ejemplo, archivo invÃ¡lido), capturamos el mensaje de error
+		PRINT 'Error: El archivo no es vÃ¡lido o no se puede acceder.';
 		PRINT ERROR_MESSAGE();
 	END CATCH
     
@@ -87,7 +87,7 @@ BEGIN
     );
 
 
-    -- Mostrar los resultados de la operación
+    -- Mostrar los resultados de la operaciÃ³n
     SELECT * FROM dbSucursal.Sucursal;
     SELECT * FROM @Resultados;
 
