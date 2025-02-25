@@ -14,121 +14,18 @@
 USE Com1353G04
 GO
 
--------------------------- PRE IMPORTACIONES ------------------------  
-
--- Habilitar opciones avanzadas y consultas distribuidas
-
-EXEC sp_configure 'show advanced options', 1;
-RECONFIGURE;
-EXEC sp_configure 'Ad Hoc Distributed Queries', 1;
-RECONFIGURE;
-EXEC sp_configure 'Ole Automation Procedures', 1;
-RECONFIGURE;
-GO
-
-
-/*
-Funci�n: ObtenerPrefijoCUIL
-Descripci�n:
-    Determina el prefijo del CUIL seg�n el nombre de la persona.
-    Se usa una API externa para obtener la probabilidad de que el nombre pertenezca a un hombre o a una mujer.
-    Si la probabilidad de ser mujer es mayor, se asigna el prefijo '27', de lo contrario, '20'.
-    
-Par�metros:
-    @Nombre VARCHAR(100) - Nombre de la persona.
-
-Retorno:
-    CHAR(2) - Prefijo del CUIL ('20' para hombres, '27' para mujeres, '23' en caso de no obtener respuesta).
-
-Notas:
-    - La API utilizada es https://api.genderize.io?name={nombre}.
-    - Si la API no responde, se asume '23' por defecto, que es valido para hombres/mujeres.
-*/
-CREATE OR ALTER FUNCTION dbEmpleado.ObtenerPrefijoCUIL(@nombre VARCHAR(30))
-RETURNS CHAR(10)
-AS
-BEGIN
-	DECLARE @URL VARCHAR(127) = 'https://api.genderize.io?name=' + @nombre;
-	DECLARE @Object INT;
-	DECLARE @ResponseText VARCHAR(1024);
-	DECLARE @Prefijo CHAR(2);
-	DECLARE @Genero VARCHAR(10);
-	
-	-- Crear el objeto para la solicitud HTTP
-	EXEC sp_OACreate 'MSXML2.ServerXMLHTTP.6.0', @Object OUTPUT;
-
-	-- Realizar la solicitud GET
-	EXEC sp_OAMethod @Object, 'open', NULL, 'GET', @URL, 'false';
-	EXEC sp_OAMethod @Object, 'send';
-	
-	-- Obtener la respuesta de la API
-	EXEC sp_OAGetProperty @Object, 'responseText', @ResponseText OUTPUT;
-
-	-- Liberar el objeto
-	EXEC sp_OADestroy @Object;
-
-	SET @Genero = JSON_VALUE(@ResponseText, '$.gender');
-
-	RETURN CASE 
-		WHEN @Genero = 'male' THEN '20'
-		WHEN @Genero = 'female' THEN '27'
-		ELSE '23'
-	END;
-END;
-GO
-
-
-/*
-Funci�n: GenerarCUIL
-Descripci�n:
-    Genera un CUIL en formato "XX-XXXXXXXX-X", donde:
-    - "XX" es el prefijo basado en el nombre del empleado.
-    - "XXXXXXXX" es el DNI.
-    - "X" es un d�gito verificador simplificado.
-    
-Par�metros:
-    @DNI INT: El n�mero de documento (DNI) del empleado.
-    @nombre VARCHAR(30): El nombre del empleado para obtener el prefijo.
-
-Retorno:
-    CHAR(13): El CUIL generado.
-
-Notas:
-    - Depende de la funci�n 'ObtenerPrefijoCUIL' para obtener el prefijo.
-    - El d�gito verificador se calcula de forma simplificada.
-    - El formato del CUIL es "XX-XXXXXXXX-X".
-*/
-CREATE OR ALTER FUNCTION dbEmpleado.GenerarCUIL(@DNI INT, @nombre VARCHAR(1024))
-RETURNS CHAR(13)
-AS
-BEGIN
-
-    DECLARE @Prefijo CHAR(2)
-    DECLARE @Verificador CHAR(1)
-    DECLARE @CUIL CHAR(13)
-
-    SET @Prefijo = (SELECT dbEmpleado.ObtenerPrefijoCUIL(@nombre));
-
-    -- Calcula d�gito verificador (simplificado, sin validaci�n real)
-    SET @Verificador = ABS(CHECKSUM(CAST(GETDATE() AS VARCHAR(10)))) % 10;
-
-    -- Formatea el CUIL
-    SET @CUIL = @Prefijo + '-' + CAST(@DNI AS VARCHAR) + '-' + @Verificador
-
-    RETURN @CUIL
-END;
-GO
-
-
 ---------------------------- IMPORTACIONES --------------------------  
 
 ---------------------------------------------------------------------
--- SUCURSAL --
+-- SUCURSALES --
 
-CREATE OR ALTER PROCEDURE dbSucursal.CargarSucursal
+CREATE OR ALTER PROCEDURE dbSucursal.ImportarSucursales
     @RutaArchivo VARCHAR(1024)
 AS
 BEGIN
+    -- Concatenar el nombre del archivo a la ruta
+    SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx';
+	
     -- Tabla temporal para almacenar los datos importados
 	CREATE TABLE #DatosSucursalArchivo (
 		Ciudad VARCHAR(50) COLLATE Modern_Spanish_CI_AS NOT NULL,
@@ -138,21 +35,12 @@ BEGIN
 		Horario VARCHAR(50) COLLATE Modern_Spanish_CI_AS NOT NULL
 	);
 
-    -- Tabla para registrar los cambios realizados (TESTING)
-    DECLARE @Resultados TABLE (
-        ActionType VARCHAR(10),
-        Ciudad VARCHAR(255),
-        Sucursal VARCHAR(255),
-        Direccion VARCHAR(255),
-        Horario VARCHAR(255),
-        Telefono VARCHAR(255)
-    );
 
 	BEGIN TRY
 		-- Comando para importar datos desde el archivo Excel
 		DECLARE @CargaDatosArchivo VARCHAR(1024) = '
 			INSERT INTO #DatosSucursalArchivo (Ciudad, Sucursal, Direccion, Horario, Telefono)
-			SELECT Ciudad, [Reemplazar por] AS Sucursal, Direccion, Horario, Telefono
+			SELECT Ciudad, [Reemplazar por] AS Sucursal, direccion, Horario, Telefono
 			FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
 							 ''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'', 
 							 ''SELECT * FROM [sucursal$]'');
@@ -180,9 +68,6 @@ BEGIN
         target.Horario = source.Horario,
         target.Telefono = source.Telefono
 
-    OUTPUT 'UPDATE', inserted.Ciudad, inserted.Sucursal, inserted.Direccion, inserted.Horario, inserted.Telefono
-    INTO @Resultados (ActionType, Ciudad, Sucursal, Direccion, Horario, Telefono)
-
     FROM dbSucursal.Sucursal AS target
     JOIN #DatosSucursalArchivo AS source ON target.Ciudad = source.Ciudad AND target.sucursal = source.Sucursal
     WHERE target.Sucursal != source.Sucursal 
@@ -192,10 +77,6 @@ BEGIN
 
     -- Insertar nuevos registros si no existen
     INSERT INTO dbSucursal.Sucursal (Ciudad, Sucursal, Direccion, Horario, Telefono, Estado)
-
-	OUTPUT 'INSERT', inserted.Ciudad, inserted.Sucursal, inserted.Direccion, inserted.Horario, inserted.Telefono
-    INTO @Resultados (ActionType, Ciudad, Sucursal, Direccion, Horario, Telefono)
-
     SELECT source.Ciudad, source.Sucursal, source.Direccion, source.Horario, source.Telefono, 1
     FROM #DatosSucursalArchivo AS source
     WHERE NOT EXISTS (
@@ -206,21 +87,22 @@ BEGIN
 
     -- Mostrar los resultados de la operación
     --SELECT * FROM dbSucursal.Sucursal;
-    --SELECT * FROM @Resultados;
 
 
 	DROP TABLE #DatosSucursalArchivo;
+	
 END;
 GO
 
 
 ---------------------------------------------------------------------
--- METODO DE PAGO --
+-- METODOS DE PAGO --
 
-CREATE OR ALTER PROCEDURE dbVenta.CargarMetodoDePago
+CREATE OR ALTER PROCEDURE dbVenta.ImportarMetodosDePago
 	@RutaArchivo VARCHAR(1024)
 AS
 BEGIN
+	SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx';
 
 	-- Tabla temporal para almacenar los datos importados
     CREATE TABLE #DatosMedioPagoArchivo (
@@ -278,12 +160,14 @@ GO
 
 
 ---------------------------------------------------------------------
--- EMPLEADO --
+-- EMPLEADOS --
 
-CREATE OR ALTER PROCEDURE dbEmpleado.CargarEmpleado
+CREATE OR ALTER PROCEDURE dbEmpleado.ImportarEmpleados
 	@RutaArchivo VARCHAR(1024)
 AS
 BEGIN
+	SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx';
+
 	-- Tabla temporal para almacenar los datos importados
 	CREATE TABLE #DatosEmpleados (
 		legajo INT,
@@ -306,7 +190,7 @@ BEGIN
 										emailEmpresa, cargo, turno, cuil, idSucursal, fechaAlta)
 
 			SELECT [Legajo/ID], Nombre, Apellido, Direccion, [email personal], [email empresa], Cargo, Turno, 
-			(SELECT dbEmpleado.GenerarCUIL(Excel.DNI, Excel.[Nombre])),
+			(SELECT dbSistema.GenerarCUIL(Excel.DNI, Excel.[Nombre])),
 			(SELECT idSucursal FROM dbSucursal.Sucursal WHERE dbSucursal.Sucursal.sucursal = Excel.Sucursal COLLATE Modern_Spanish_CI_AS
 																AND dbSucursal.Sucursal.estado = 1),
 			GETDATE()
@@ -377,462 +261,404 @@ END;
 GO
 
 
-
-
-
-
-
 ---------------------------------------------------------------------
--- PRODUCTO --
+-- PRODUCTOS --
 
 
-
-
-
-CREATE PROCEDURE dbProducto.ImportarClasificacionProductos(@RutaArchivo VARCHAR(1024))
-AS
-BEGIN
-
-	CREATE TABLE #tempClasificacionLineaCategoria (
-		linea VARCHAR(50),
-		categoria VARCHAR(50)
-	);
-	
-	DECLARE @CargaDatosArchivo VARCHAR(1024) = '
-
-		INSERT INTO #tempClasificacionLineaCategoria (linea, categoria)
-		SELECT [Línea de producto], Producto
-		FROM OPENROWSET(
-				''Microsoft.ACE.OLEDB.12.0'',
-				''Excel 12.0;HDR=YES;IMEX=1;Database=' + @RutaArchivo + ''',
-				''SELECT * FROM [Clasificacion productos$]''
-		)';
-
-	EXEC (@CargaDatosArchivo);
-
-
-	
-	INSERT INTO dbProducto.LineaProducto(nombre)
-	SELECT DISTINCT linea 
-	FROM #tempClasificacionLineaCategoria
-	WHERE NOT EXISTS (
-		SELECT 1 
-		FROM dbProducto.LineaProducto lineaProd
-		WHERE lineaProd.nombre =  #tempClasificacionLineaCategoria.linea
-	);
-
-	SELECT * FROM dbProducto.LineaProducto;
-
-
-
-	INSERT INTO dbProducto.CategoriaProducto(nombre, idLineaProducto)
-	SELECT categoria, 
-		   (SELECT idLineaProducto 
-			FROM dbProducto.LineaProducto AS lineaProd 
-			WHERE lineaProd.nombre = #tempClasificacionLineaCategoria.linea)
-	FROM #tempClasificacionLineaCategoria
-	WHERE NOT EXISTS (
-		SELECT 1
-		FROM dbProducto.CategoriaProducto AS catProd
-		WHERE catProd.nombre = categoria
-	);
-
-	SELECT * FROM dbProducto.CategoriaProducto;
-
-	DROP TABLE #tempClasificacionLineaCategoria;
-END;
-
-
-
-
-CREATE PROCEDURE dbProducto.ImportarMaestrosProductos(@RutaArchivo VARCHAR(1024))
+-- Clasificacion de productos
+CREATE OR ALTER PROCEDURE dbProducto.ImportarClasificacionProductos(@RutaArchivo VARCHAR(1024))
 AS
 BEGIN
 	BEGIN TRY
-		CREATE TABLE #NombreArchivoProductos (
-			maestroProductos VARCHAR(70)
+		SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx'
+
+		CREATE TABLE #tempClasificacionLineaCategoria (
+			linea VARCHAR(50) COLLATE Modern_Spanish_CI_AS,
+			categoria VARCHAR(50) COLLATE Modern_Spanish_CI_AS
 		);
-		
-		CREATE TABLE #nombreDirectorio (nombre VARCHAR(30));
-
-		DECLARE @ObtenerNombreDirectorioCatalogos VARCHAR(255) = 
-			'INSERT INTO #nombreDirectorio (nombre)
-			SELECT TOP 1 *
-			FROM OPENROWSET(
-				''Microsoft.ACE.OLEDB.12.0'', 
-				''Excel 12.0;HDR=NO;Database=' + @RutaArchivo + ''', 
-				''SELECT * FROM [catalogo$]''
-			);';
-
-		EXEC (@ObtenerNombreDirectorioCatalogos);
-
-		
-		DECLARE @CargaDatosArchivo AS VARCHAR(1024);
-		SET @CargaDatosArchivo = 'INSERT INTO #NombreArchivoProductos (maestroProductos) 
-						 SELECT [Productos] 
-						 FROM OPENROWSET(
-							 ''Microsoft.ACE.OLEDB.12.0'',
-							 ''Excel 12.0;HDR=YES;IMEX=1;Database=' + @RutaArchivo + ''',
-							 ''SELECT * FROM [catalogo$]''
-						 )';
-
-		-- Ejecutar la consulta dinámica
-		EXEC(@CargaDatosArchivo);
-
-		DECLARE @RutaBase VARCHAR(255);
-		SET @RutaBase = LEFT(@RutaArchivo, LEN(@RutaArchivo) - CHARINDEX('/', REVERSE(@RutaArchivo))) + '/'
-						+ (SELECT nombre FROM #nombreDirectorio) + '/';
-		
-		DECLARE @RutaProductosCatalogo VARCHAR(255) = @RutaBase + (
-			SELECT maestroProductos 
-			FROM #NombreArchivoProductos
-			WHERE maestroProductos LIKE '%catalogo%'
-		);
-		DECLARE @RutaProductosElectronica VARCHAR(255) = @RutaBase + (
-			SELECT maestroProductos 
-			FROM #NombreArchivoProductos
-			WHERE maestroProductos LIKE '%electronic%'
-		);
-		DECLARE @RutaProductosImportados VARCHAR(255) = @RutaBase + (
-			SELECT maestroProductos 
-			FROM #NombreArchivoProductos
-			WHERE maestroProductos LIKE '%importados%'
-		);
-
-		DROP TABLE #nombreDirectorio;
-		DROP TABLE #NombreArchivoProductos
-
-		
-
-		-- Importar catalogos con la ruta ya establecida.
-
-		EXEC dbProducto.ImportarCatalogo @RutaProductosCatalogo;
-		EXEC dbProducto.ImportarProductosElectronica @RutaProductosElectronica;
-		--EXEC dbProducto.ImportarProductosImportados  @RutaProductosImportados;
-
-
-		-- Mostrar mensaje de éxito
-		PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
-	END TRY
-
-	BEGIN CATCH
-		PRINT 'Se ha producido un error: ' + ERROR_MESSAGE();
-	END CATCH;
-
-END;
-
-
-
-CREATE PROCEDURE dbProducto.ImportarCatalogo (@RutaArchivo VARCHAR(1024))
-AS
-BEGIN
-
-	BEGIN TRY
-
-		-- Separamos el directorio y el nombre del archivo de la ruta absoluta ya que al importar
-		-- archivos .csv se hace de diferente manera.
-
-		DECLARE @NombreArchivo VARCHAR(50) = RIGHT(@RutaArchivo, CHARINDEX('/', REVERSE(@RutaArchivo)) - 1);
-		DECLARE @Directorio VARCHAR(100)= LEFT(@RutaArchivo, LEN(@RutaArchivo) - CHARINDEX('/', REVERSE(@RutaArchivo)));
-
-		-- Construir la consulta dinámica para insertar los datos
-		DECLARE @CargaDatosArchivo VARCHAR(2048);  
-		SET @CargaDatosArchivo = '
-			INSERT INTO dbProducto.Producto (
-				nombre, 
-				precio, 
-				precioReferencia, 
-				unidadReferencia, 
-				fecha, 
-				cantidadUnitaria, 
-				idCategoriaProducto
-			)
-			SELECT 
-				REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([name], ''Ã¡'', ''á''), ''Ã©'', ''é''), ''Ã­'', ''í''), ''Ã³'', ''ó''), ''Ãº'', ''ú''), ''Ã±'', ''ñ''), ''Ã‘'', ''Ñ'') AS nombre,
-				[price], 
-				[reference_price], 
-				[reference_unit], 
-				[date], 
-				NULL AS cantidadUnitaria,           
-				(SELECT idCategoriaProducto   
-				 FROM dbProducto.CategoriaProducto 
-				 WHERE nombre = [category]) 
-			FROM OPENROWSET(
-				''Microsoft.ACE.OLEDB.12.0'',
-				''Text;HDR=YES;FMT=Delimited;Database=' + @Directorio + ''',
-				''SELECT * FROM [' + @NombreArchivo + ']''
-			);';
-
-		-- Ejecutar la consulta dinámica
-		EXEC(@CargaDatosArchivo);
-	END TRY
-	BEGIN CATCH
-        PRINT 'Error: ' + ERROR_MESSAGE();
-    END CATCH
-END;
-
-
-
-
-CREATE PROCEDURE dbProducto.ImportarProductosElectronica (@RutaArchivo VARCHAR(1024))
-AS
-BEGIN
-	--Insertamos una linea de producto: Electronica
 	
-	IF NOT EXISTS (
-		SELECT 1
-		FROM dbProducto.LineaProducto
-		WHERE nombre = 'Electrónica'
-	)
-	BEGIN
-		INSERT INTO dbProducto.LineaProducto(nombre, estado)
-		VALUES ('Electrónica', 1);
-	END;
+		DECLARE @CargaDatosArchivo VARCHAR(1024) = '
 
-
-	--Insertamos cada categoría solo si no existe de los productos de Electronica
-
-	DECLARE @idLineaElectronica INT = (
-		SELECT idLineaProducto 
-		FROM dbProducto.LineaProducto 
-		WHERE nombre = 'Electrónica'
-	);
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Teléfono' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Teléfono', @idLineaElectronica);
-	END;
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Monitor' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Monitor', @idLineaElectronica);
-	END;
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Laptops' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Laptop', @idLineaElectronica);
-	END;
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Auriculares' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Auriculares', @idLineaElectronica);
-	END;
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Cargador' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Cargador', @idLineaElectronica);
-	END;
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Electrodomésticos' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Electrodoméstico', @idLineaElectronica);
-	END;
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Televisor' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Televisor', @idLineaElectronica);
-	END;
-
-	IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Bateria' AND idLineaProducto = @idLineaElectronica)
-	BEGIN
-		INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
-		VALUES ('Batería', @idLineaElectronica);
-	END;
-
-	--Seteo palabras clave por categoria, para poder agrupar los productos de forma automatica.
-
-	CREATE TABLE #PalabrasClavePorCategoria(
-		idCategoria INT,
-		palabrasClave VARCHAR(255)
-
-	);
-	INSERT INTO #PalabrasClavePorCategoria(idCategoria, palabrasClave)
-	SELECT 
-		cp.idCategoriaProducto, 
-		'Laptop' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Laptop'
-
-	UNION ALL
-
-	SELECT 
-		cp.idCategoriaProducto, 
-		'LG' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Electrodoméstico'
-
-	UNION ALL
-
-	SELECT 
-		cp.idCategoriaProducto, 
-		'Charging,Cable' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Cargador'
-
-	UNION ALL
-
-	SELECT 
-		cp.idCategoriaProducto, 
-		'AA,AAA' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Batería'
-
-	UNION ALL
-
-	SELECT 
-		cp.idCategoriaProducto, 
-		'Monitor' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Monitor'
-
-	UNION ALL
-
-	SELECT 
-		cp.idCategoriaProducto, 
-		'Headphones' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Auriculares'
-
-	UNION ALL
-
-	SELECT 
-		cp.idCategoriaProducto, 
-		'Phone,iPhone' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Teléfono'
-
-	UNION ALL
-
-	SELECT 
-		cp.idCategoriaProducto, 
-		'TV' AS palabrasClave
-	FROM dbProducto.CategoriaProducto cp
-	WHERE cp.nombre = 'Televisor';
-
-
-
-	DECLARE @CotizacionUSDActual DECIMAL(10,2);
-	EXEC dbProducto.ObtenerCotizacionUSD @CotizacionUSDActual OUTPUT;
-	
-	IF @CotizacionUSDActual IS NOT NULL
-	BEGIN
-		DECLARE @CargaDatosArchivo VARCHAR(2048) = '
-			INSERT INTO dbProducto.Producto (
-				nombre, 
-				precio, 
-				precioReferencia, 
-				unidadReferencia, 
-				fecha, 
-				cantidadUnitaria, 
-				idCategoriaProducto
-			)
-			SELECT 
-				[Product],
-				[Precio Unitario en dolares] * ' + CAST(@CotizacionUSDActual AS VARCHAR(11)) + ',
-				NULL AS precioReferencia, 
-				NULL AS referenciaUnidad, 
-				NULL AS fecha, 
-				NULL AS cantidadUnitaria,             
-				(
-					SELECT TOP 1 idCategoria
-					FROM #PalabrasClavePorCategoria AS tempPalabrasClave
-					JOIN STRING_SPLIT([Product], '' '') AS palabrasSpliteadasNombreProd
-						ON EXISTS (
-							SELECT 1
-							FROM STRING_SPLIT(tempPalabrasClave.palabrasClave, '','') AS palabrasClave
-							WHERE palabrasSpliteadasNombreProd.value = palabrasClave.value
-						)
-				)
-		FROM OPENROWSET(
-				''Microsoft.ACE.OLEDB.12.0'',
-				''Excel 12.0;HDR=YES;IMEX=1;Database=' + @RutaArchivo + ''',
-				''SELECT [Product], [Precio Unitario en dolares] FROM [Sheet1$]''
-		)';
+			INSERT INTO #tempClasificacionLineaCategoria (linea, categoria)
+			SELECT [Línea de producto], Producto
+			FROM OPENROWSET(
+					''Microsoft.ACE.OLEDB.12.0'',
+					''Excel 12.0;HDR=YES;IMEX=1;Database=' + @RutaArchivo + ''',
+					''SELECT * FROM [Clasificacion productos$]''
+			)';
 
 		EXEC (@CargaDatosArchivo);
-		
-		PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
-	END
-	ELSE
-	BEGIN
-		PRINT 'Error al cargar el catalogo: ' + @RutaArchivo;
-	END;
 
-	DROP TABLE #PalabrasClavePorCategoria;
+
+		INSERT INTO dbProducto.LineaProducto(nombre)
+		SELECT DISTINCT linea 
+		FROM #tempClasificacionLineaCategoria
+		WHERE NOT EXISTS (
+			SELECT 1 
+			FROM dbProducto.LineaProducto lineaProd
+			WHERE lineaProd.nombre =  #tempClasificacionLineaCategoria.linea
+		);
+
+
+		INSERT INTO dbProducto.CategoriaProducto(nombre, idLineaProducto)
+		SELECT categoria, 
+			   (SELECT idLineaProducto 
+				FROM dbProducto.LineaProducto AS lineaProd 
+				WHERE lineaProd.nombre = #tempClasificacionLineaCategoria.linea)
+		FROM #tempClasificacionLineaCategoria
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM dbProducto.CategoriaProducto AS catProd
+			WHERE catProd.nombre = categoria
+		);
+
+
+		DROP TABLE #tempClasificacionLineaCategoria;
+
+
+
+		--Insertamos una linea de producto: Electronica
+		IF NOT EXISTS (
+			SELECT 1
+			FROM dbProducto.LineaProducto
+			WHERE nombre = 'Electrónica'
+		)
+		BEGIN
+			INSERT INTO dbProducto.LineaProducto(nombre, estado)
+			VALUES ('Electrónica', 1);
+		END;
+
+		--Insertamos cada categoría solo si no existe de los productos de Electronica
+		DECLARE @idLineaElectronica INT = (
+			SELECT idLineaProducto 
+			FROM dbProducto.LineaProducto 
+			WHERE nombre = 'Electrónica'
+		);
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Teléfono' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Teléfono', @idLineaElectronica);
+		END;
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Monitor' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Monitor', @idLineaElectronica);
+		END;
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Laptop' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Laptop', @idLineaElectronica);
+		END;
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Auricular' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Auricular', @idLineaElectronica);
+		END;
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Cargador' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Cargador', @idLineaElectronica);
+		END;
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Electrodoméstico' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Electrodoméstico', @idLineaElectronica);
+		END;
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Televisor' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Televisor', @idLineaElectronica);
+		END;
+
+		IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE nombre = 'Batería' AND idLineaProducto = @idLineaElectronica)
+		BEGIN
+			INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+			VALUES ('Batería', @idLineaElectronica);
+		END;
+
+
+	END TRY
+	BEGIN CATCH
+		PRINT 'Error: ' + ERROR_MESSAGE();
+	END CATCH
 END;
+GO
 
 
---Obtener valor USD actual consultando la API del BancoCentral.
-
-CREATE PROCEDURE dbProducto.ObtenerCotizacionUSD
-    @CotizacionUSD DECIMAL(10,2) OUTPUT
+-- catalogo.csv
+CREATE OR ALTER PROCEDURE dbProducto.ImportarCatalogo (@RutaArchivo VARCHAR(1024))
 AS
 BEGIN
-    DECLARE @Object INT;
-    DECLARE @Status INT;
-    DECLARE @ResponseText VARCHAR(2048);
-    DECLARE @URL VARCHAR(1000);
-
     BEGIN TRY
-        -- La URL de la API que quieres consultar
-        SET @URL = 'https://api.bcra.gob.ar/estadisticascambiarias/v1.0/Cotizaciones/USD';
+        -- Separamos el directorio y el nombre del archivo
+        DECLARE @NombreArchivo VARCHAR(50) = RIGHT(@RutaArchivo, CHARINDEX('/', REVERSE(@RutaArchivo)) - 1);
+        DECLARE @Directorio VARCHAR(100) = LEFT(@RutaArchivo, LEN(@RutaArchivo) - CHARINDEX('/', REVERSE(@RutaArchivo)));
 
-        -- Crear un objeto COM para la solicitud HTTP
-        EXEC sp_OACreate 'MSXML2.ServerXMLHTTP.6.0', @Object OUT;
-        IF @Object = 0 RAISERROR('No se pudo establecer una conexión HTTP', 10, 1);
+        -- Crear una tabla temporal sin los campos 'id' y 'date'
+        CREATE TABLE #TempProducto (
+            category VARCHAR(50) COLLATE Modern_Spanish_CI_AS,
+            name VARCHAR(100) COLLATE Modern_Spanish_CI_AS,
+            price DECIMAL(10,2),
+            reference_price DECIMAL(10,2),
+            reference_unit VARCHAR(10) COLLATE Modern_Spanish_CI_AS,
+            date DATETIME
+        );
 
-        -- Realizar la solicitud GET a la API
-        EXEC sp_OAMethod @Object, 'open', NULL, 'GET', @URL, 'false';
-        EXEC sp_OAMethod @Object, 'send';
+        -- Realizar la carga del archivo CSV usando BULK INSERT
+		DECLARE @SQL VARCHAR(MAX);
+        
 
-        -- Obtener el código de estado de la respuesta
-        EXEC sp_OAGetProperty @Object, 'status', @Status OUT;
+		SET @SQL = 'INSERT INTO #TempProducto (category, name, price, reference_price, reference_unit, date)
+        SELECT 
+            category,
+            -- Reemplazamos las secuencias erróneas de caracteres en la columna name
+            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, ''Ã¡'', ''á''), 
+                ''Ã©'', ''é''), 
+                ''Ã­'', ''í''), 
+                ''Ã³'', ''ó''), 
+                ''Ãº'', ''ú''), 
+                ''Ã±'', ''ñ''), 
+                ''Ã‘'', ''Ñ'') AS name,
+            price,
+            reference_price,
+            reference_unit,
+            date
+        FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+            ''Text;HDR=YES;FMT=Delimited;Database=' + @Directorio + ''',
+            ''SELECT * FROM [' + @NombreArchivo + ']'');';
 
-        IF @Status = 200
-        BEGIN
-            -- Obtener la respuesta de la API
-            EXEC sp_OAGetProperty @Object, 'responseText', @ResponseText OUT;
 
-            -- Validar que la respuesta no sea NULL o vacía antes de procesarla
-            IF @ResponseText IS NOT NULL AND LEN(@ResponseText) > 0
-            BEGIN
-                SELECT @CotizacionUSD = CAST(JSON_VALUE(detalle.value, '$.tipoCotizacion') AS DECIMAL(10,2))
-                FROM OPENJSON(@ResponseText, '$.results') AS result
-                CROSS APPLY OPENJSON(result.value, '$.detalle') AS detalle;
-            END
-            ELSE
-            BEGIN
-                PRINT 'La respuesta de la API está vacía o es inválida.';
-                SET @CotizacionUSD = NULL;
-            END
-        END
-        ELSE
-        BEGIN
-            PRINT 'No se pudo obtener la cotización actual del dólar americano (USD).';
-            PRINT 'Error: ' + CAST(@Status AS VARCHAR(10));
-            SET @CotizacionUSD = NULL;
-        END
+        -- Ejecutar la consulta OPENROWSET
+        EXEC(@SQL);
+
+
+    -- Actualizamos los productos existentes
+		UPDATE p
+		SET 
+			p.precio = t.price,
+			p.precioReferencia = t.reference_price,
+			p.unidadReferencia = t.reference_unit,
+			p.fecha = t.date,
+			p.idCategoriaProducto = (
+				SELECT idCategoriaProducto
+				FROM dbProducto.CategoriaProducto
+				WHERE nombre COLLATE Modern_Spanish_CI_AS = t.category COLLATE Modern_Spanish_CI_AS
+			)
+		FROM dbProducto.Producto p
+		INNER JOIN #TempProducto t ON p.nombre COLLATE Modern_Spanish_CI_AS = t.name COLLATE Modern_Spanish_CI_AS;
+
+		-- Insertamos los productos que no existen
+
+		WITH ProductosUnicos AS (
+			SELECT 
+				name,
+				AVG(price) AS price, 
+				AVG(reference_price) AS reference_price,  
+				MAX(reference_unit) AS reference_unit,  -- Se toma la unidad de referencia más frecuente
+				MAX(date) AS date,  -- Se toma la fecha más reciente
+				MAX(category) AS category  -- Se toma la categoría más frecuente
+			FROM #TempProducto
+			GROUP BY name
+		)
+
+		INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, idCategoriaProducto)
+		SELECT 
+			t.name,
+			t.price,
+			t.reference_price,
+			t.reference_unit,
+			t.date,
+			(SELECT idCategoriaProducto
+			 FROM dbProducto.CategoriaProducto
+			 WHERE nombre COLLATE Modern_Spanish_CI_AS = t.category COLLATE Modern_Spanish_CI_AS)
+		FROM ProductosUnicos t
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM dbProducto.Producto p
+			WHERE p.nombre COLLATE Modern_Spanish_CI_AS = t.name COLLATE Modern_Spanish_CI_AS
+		);
+
+        -- Limpiar la tabla temporal
+        DROP TABLE #TempProducto;
+
     END TRY
     BEGIN CATCH
-        PRINT 'Se produjo un error al consultar la API.';
         PRINT 'Error: ' + ERROR_MESSAGE();
-        SET @CotizacionUSD = NULL;
     END CATCH
-
-	-- Limpieza del objeto COM (si fue creado)
-    IF @Object IS NOT NULL
-        EXEC sp_OADestroy @Object;
 END;
+GO
 
 
-CREATE PROCEDURE dbProducto.ImportarProductosImportados(@RutaArchivo VARCHAR(1024))
+-- Electronic accesories.xlsx
+CREATE OR ALTER PROCEDURE dbProducto.ImportarProductosElectronica (@RutaArchivo VARCHAR(1024))
+AS
+BEGIN
+	BEGIN TRY
+		--Seteo palabras clave por categoria, para poder agrupar los productos de forma automatica.
+		CREATE TABLE #PalabrasClavePorCategoria(
+			idCategoria INT,
+			palabrasClave VARCHAR(255) COLLATE Modern_Spanish_CI_AS
+
+		);
+		INSERT INTO #PalabrasClavePorCategoria(idCategoria, palabrasClave)
+		SELECT 
+			cp.idCategoriaProducto, 
+			'Laptop' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Laptop'
+
+		UNION ALL
+
+		SELECT 
+			cp.idCategoriaProducto, 
+			'LG' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Electrodoméstico'
+
+		UNION ALL
+
+		SELECT 
+			cp.idCategoriaProducto, 
+			'Charging,Cable' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Cargador'
+
+		UNION ALL
+
+		SELECT 
+			cp.idCategoriaProducto, 
+			'AA,AAA' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Batería'
+
+		UNION ALL
+
+		SELECT 
+			cp.idCategoriaProducto, 
+			'Monitor' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Monitor'
+
+		UNION ALL
+
+		SELECT 
+			cp.idCategoriaProducto, 
+			'Headphones' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Auricular'
+
+		UNION ALL
+
+		SELECT 
+			cp.idCategoriaProducto, 
+			'Phone,iPhone' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Teléfono'
+
+		UNION ALL
+
+		SELECT 
+			cp.idCategoriaProducto, 
+			'TV' AS palabrasClave
+		FROM dbProducto.CategoriaProducto cp
+		WHERE cp.nombre = 'Televisor';
+
+
+		-- Carga de productos en tabla temporal
+		CREATE TABLE #ProductosTemporales (
+			Producto VARCHAR(255) COLLATE Modern_Spanish_CI_AS,
+			Precio DECIMAL(10,2)
+		);
+
+		DECLARE @CotizacionUSDActual DECIMAL(10,2);
+		EXEC dbSistema.ObtenerCotizacionUSD @CotizacionUSDActual OUTPUT;
+	
+		IF @CotizacionUSDActual IS NOT NULL
+		BEGIN
+			DECLARE @Sql VARCHAR(MAX) = '
+			INSERT INTO #ProductosTemporales (Producto, Precio)
+			SELECT 
+			[Product], 
+			[Precio Unitario en dolares] 
+			FROM OPENROWSET(
+					''Microsoft.ACE.OLEDB.12.0'',
+					''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'',
+					''SELECT [Product], [Precio Unitario en dolares] FROM [Sheet1$]'');
+			';
+
+			EXEC(@Sql);
+
+
+			UPDATE p
+			SET 
+				p.precio = t.Precio * @CotizacionUSDActual,
+				p.idCategoriaProducto = c.idCategoria
+			FROM dbProducto.Producto p
+			JOIN #ProductosTemporales t ON p.nombre = t.Producto
+			CROSS APPLY (
+				SELECT TOP 1 idCategoria
+				FROM #PalabrasClavePorCategoria p
+				WHERE EXISTS (
+					SELECT 1 FROM STRING_SPLIT(p.palabrasClave, ',') s
+					WHERE CHARINDEX(s.value, t.Producto) > 0
+				)
+				ORDER BY LEN(p.palabrasClave) DESC
+			) c;
+
+
+			WITH ProductosUnicos AS (
+			SELECT 
+				Producto, 
+				AVG(Precio) AS Precio  
+			FROM #ProductosTemporales
+			GROUP BY Producto
+			)
+
+			INSERT INTO dbProducto.Producto (nombre, precio, idCategoriaProducto)
+			SELECT 
+				t.Producto,
+				t.Precio * @CotizacionUSDActual,  -- Convertimos el precio a la moneda local
+				c.idCategoria
+			FROM ProductosUnicos t
+			CROSS APPLY (
+				SELECT TOP 1 idCategoria
+				FROM #PalabrasClavePorCategoria p
+				WHERE EXISTS (
+					SELECT 1 FROM STRING_SPLIT(p.palabrasClave, ',') s
+					WHERE CHARINDEX(s.value, t.Producto) > 0
+				)
+				ORDER BY LEN(p.palabrasClave) DESC
+			) c
+			WHERE NOT EXISTS (
+				SELECT 1 FROM dbProducto.Producto p WHERE p.nombre = t.Producto
+			);
+
+		
+			PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
+		END
+		ELSE
+		BEGIN
+			PRINT 'Error al cargar el catalogo: ' + @RutaArchivo;
+		END;
+
+		DROP TABLE #PalabrasClavePorCategoria;
+	END TRY
+	BEGIN CATCH
+		PRINT 'Ocurrió un error: ' + ERROR_MESSAGE();
+	END CATCH;
+END;
+GO
+
+
+-- Productos_importados.xlsx
+CREATE OR ALTER PROCEDURE dbProducto.ImportarProductosImportados(@RutaArchivo VARCHAR(1024))
 AS
 BEGIN
     CREATE TABLE #tempProductoImportado (
@@ -968,3 +794,150 @@ BEGIN
 
     DROP TABLE #tempProductoImportado;
 END;
+GO
+
+
+-- importar productos
+CREATE OR ALTER PROCEDURE dbProducto.ImportarProductos(@RutaArchivo VARCHAR(1024))
+AS
+BEGIN
+	BEGIN TRY
+		-- Establecer ruta de catalogos
+		DECLARE @RutaProductosCatalogo VARCHAR(1024)
+		DECLARE @RutaProductosElectronica VARCHAR(1024)
+		DECLARE @RutaProductosImportados VARCHAR(1024)
+		DECLARE @RutaClasificacionProductos VARCHAR(1024)
+
+		SET @RutaProductosCatalogo = @RutaArchivo + 'Productos/catalogo.csv'
+		SET @RutaProductosElectronica = @RutaArchivo + 'Productos/Electronic accessories.xlsx'
+		SET @RutaProductosImportados = @RutaArchivo + 'Productos/Productos_importados.xlsx'
+		SET @RutaClasificacionProductos = @RutaArchivo + 'Informacion_complementaria.xlsx'
+
+		-- Importar productos con la ruta ya establecida.
+		EXEC dbProducto.ImportarCatalogo @RutaProductosCatalogo;
+		EXEC dbProducto.ImportarProductosElectronica @RutaProductosElectronica;
+		--EXEC dbProducto.ImportarProductosImportados  @RutaProductosImportados;
+
+
+		-- Mostrar mensaje de éxito
+		PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
+	END TRY
+
+	BEGIN CATCH
+		PRINT 'Se ha producido un error: ' + ERROR_MESSAGE();
+
+	END CATCH;
+
+END;
+GO
+
+
+---------------------------------------------------------------------
+-- VENTAS --
+
+-- Se asume que este archivo no vendrá con ventas previamente cargadas en archivos anteriores. 
+-- Es decir, si una factura ya está registrada en la base de datos, 
+-- el sistema evitará insertar la venta nuevamente, saltándose aquellas filas que ya estén registradas.
+CREATE OR ALTER PROCEDURE dbVenta.ImportarVentas
+    @RutaArchivo VARCHAR(1024)
+AS
+BEGIN
+	SET @RutaArchivo = @RutaArchivo + 'Ventas_registradas.csv';
+
+    -- Tabla temporal para almacenar los datos importados
+    CREATE TABLE #DatosVentas (
+        idFactura VARCHAR(11) COLLATE Modern_Spanish_CI_AS NOT NULL, --Factura.idFactura
+        tipoFactura CHAR COLLATE Modern_Spanish_CI_AS NOT NULL, --Factura.tipoFactura
+        ciudad VARCHAR(50) COLLATE Modern_Spanish_CI_AS NOT NULL, --Sucursal.ciudad
+        tipoCliente CHAR(6) COLLATE Modern_Spanish_CI_AS NOT NULL, --Cliente.tipoCliente
+        genero CHAR(6) COLLATE Modern_Spanish_CI_AS NOT NULL, --Cliente.genero
+        producto VARCHAR(100) COLLATE Modern_Spanish_CI_AS NOT NULL, --Producto.nombre
+        precioUnitario DECIMAL(10,2) NOT NULL, --DetalleVenta.precioUnitarioAlMomentoDeLaVenta
+        cantidad INT NOT NULL, --DetalleVenta.cantidad
+        fecha DATE NOT NULL, --Venta.fecha --Factura.fecha
+        hora TIME NOT NULL, --Venta.hora --Factura.hora
+        medioPago VARCHAR(30) COLLATE Modern_Spanish_CI_AS NOT NULL, --MetodoPago.nombre
+        empleado INT NOT NULL, --Empleado.legajoEmpleado
+        identificadorPago VARCHAR(30) COLLATE Modern_Spanish_CI_AS NOT NULL --Venta.identificadorPago
+    );
+
+    BEGIN TRY
+        -- Construir la sentencia BULK INSERT dinámicamente
+        DECLARE @SQL NVARCHAR(MAX);
+        SET @SQL = '
+            BULK INSERT #DatosVentas
+            FROM ''' + @RutaArchivo + '''
+            WITH (
+                FIELDTERMINATOR = '';'',  -- Especifica el delimitador de campo (coma en un archivo CSV)
+                ROWTERMINATOR = ''\n'',   -- Especifica el terminador de fila (salto de línea en un archivo CSV)
+                CODEPAGE = ''Ventas_registradas''        -- Especifica la página de códigos del archivo
+            );';
+
+        -- Ejecutar la consulta dinámica
+        EXEC sp_executesql @SQL;
+
+        PRINT 'Los datos fueron importados correctamente desde el archivo CSV.';
+    END TRY
+    BEGIN CATCH
+        -- Capturar errores
+        RAISERROR (
+            'Error: No se pudo importar el archivo CSV.',
+            16,
+            1
+        );
+        THROW;
+    END CATCH;
+
+
+	-- Inserto factura solo si no existe
+	INSERT INTO dbVenta.Factura(idFactura, tipoFactura, fecha, hora, estado, total)
+	SELECT idFactura, tipoFactura, fecha, hora, 'P', SUM(precioUnitario * cantidad)
+	FROM #DatosVentas
+	WHERE NOT EXISTS (
+				SELECT 1 
+				FROM dbVenta.Factura f
+				WHERE f.idFactura = #DatosVentas.idFactura
+			)
+	GROUP BY idFactura, tipoFactura, fecha, hora;
+
+
+	-- Inserto venta solo si no existe
+	INSERT INTO dbVenta.Venta(fecha, hora, idCliente, idFactura, idMetodoPago, identificadorPago, legajoEmpleado)
+	SELECT D.fecha, D.hora, C.idCliente, D.idFactura, M.idMetodoPago, 
+	CASE 
+        WHEN D.identificadorPago = '--' THEN NULL 
+        ELSE D.identificadorPago 
+    END AS identificadorPago,
+	D.empleado
+	FROM #DatosVentas D
+	JOIN dbCliente.Cliente C ON C.genero = D.genero AND C.tipoCliente = D.tipoCliente
+	JOIN dbVenta.MetodoPago M ON M.nombre = D.medioPago
+	WHERE NOT EXISTS (
+				SELECT 1 FROM dbVenta.Venta V
+				WHERE V.idFactura = D.idFactura
+			)
+
+
+	-- Inserto detalles de venta solo si no existen
+	INSERT INTO dbVenta.DetalleVenta(idDetalleVenta, idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
+	SELECT 
+		ROW_NUMBER() OVER (PARTITION BY V.idVenta ORDER BY P.idProducto) AS idDetalleVenta, 
+		V.idVenta, 
+		P.idProducto, 
+		D.cantidad, 
+		D.precioUnitario, 
+		D.precioUnitario * D.cantidad AS subtotal
+	FROM #DatosVentas D
+	JOIN dbProducto.Producto P ON P.nombre = D.producto
+	JOIN dbVenta.Venta V ON V.idFactura = D.idFactura
+	WHERE NOT EXISTS (
+		SELECT 1 
+		FROM dbVenta.DetalleVenta DV
+		WHERE DV.idVenta = V.idVenta AND DV.idProducto = P.idProducto
+	);
+
+
+    -- Limpiar la tabla temporal
+    DROP TABLE #DatosVentas;
+END;
+GO

@@ -90,11 +90,11 @@ GO
 
 CREATE TABLE dbProducto.Producto (
 	idProducto INT IDENTITY(1,1) PRIMARY KEY,
-	nombre VARCHAR(50) NOT NULL,
+	nombre VARCHAR(100) NOT NULL UNIQUE,
 	precio DECIMAL(10,2) NOT NULL,     -- Tiene que estar en pesos
 	precioReferencia DECIMAL(10,2), -- catalogo.csv
-	unidadReferencia char(2),		-- catalogo.csv
-	fecha date,						-- catalogo.csv
+	unidadReferencia VARCHAR(10),		-- catalogo.csv
+	fecha DATETIME,						-- catalogo.csv
 	cantidadUnitaria varchar(50),   -- productos_importados.xlsx
 	idCategoriaProducto INT NOT NULL REFERENCES dbProducto.CategoriaProducto(idCategoriaProducto),
 	estado BIT NOT NULL DEFAULT 1
@@ -119,7 +119,7 @@ CREATE TABLE dbSucursal.Sucursal (
 	direccion VARCHAR(100) NOT NULL,
 	telefono CHAR(10) NOT NULL,
 	horario CHAR(50) NOT NULL,
-	estado BIT NOT NULL
+	estado BIT NOT NULL DEFAULT 1
 )
 GO
 
@@ -152,7 +152,7 @@ GO
 CREATE TABLE dbVenta.MetodoPago (
 	idMetodoPago INT IDENTITY(1,1) PRIMARY KEY,
 	nombre VARCHAR(30) NOT NULL UNIQUE, -- Credit card (Tarjeta de credito) - Cash (Efectivo) - Ewallet (Billetera Electronica)
-	estado BIT NOT NULL
+	estado BIT NOT NULL DEFAULT 1
 )
 GO
 
@@ -160,7 +160,7 @@ CREATE TABLE dbVenta.Venta (
 	idVenta INT IDENTITY(1,1) PRIMARY KEY,
 	fecha DATE NOT NULL,
 	hora TIME NOT NULL,
-	identificadorPago varchar(30),
+	identificadorPago VARCHAR(30),
 	legajoEmpleado INT NOT NULL REFERENCES dbEmpleado.Empleado(legajoEmpleado),
 	idCliente INT NOT NULL REFERENCES dbCliente.Cliente(idCliente),
 	idFactura CHAR(11) NOT NULL REFERENCES dbVenta.Factura(idFactura),

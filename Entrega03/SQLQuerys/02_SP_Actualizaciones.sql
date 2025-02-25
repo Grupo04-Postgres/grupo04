@@ -89,11 +89,11 @@ GO
 
 CREATE OR ALTER PROCEDURE dbProducto.ActualizarProducto
     @idProducto INT,
-    @nombre VARCHAR(50) = NULL, 
+    @nombre VARCHAR(100) = NULL, 
     @precio DECIMAL(10,2) = NULL, 
     @precioReferencia DECIMAL(10,2) = NULL, 
     @unidadReferencia CHAR(2) = NULL,
-    @fecha DATE = NULL, 
+    @fecha DATETIME = NULL, 
     @cantidadUnitaria VARCHAR(50) = NULL,
     @idCategoriaProducto INT = NULL
 AS
@@ -418,9 +418,6 @@ BEGIN
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM dbVenta.Venta WHERE idVenta = @idVenta)
         SET @error = @error + 'No existe una venta con el ID especificado. ';
-    
-    IF @identificadorPago IS NOT NULL AND LTRIM(RTRIM(@identificadorPago)) = ''
-        SET @error = @error + 'El identificador de pago no puede estar vacío. ';
 	
 	IF @idCliente IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbCliente.Cliente WHERE idCliente = @idCliente)
         SET @error = @error + 'No existe un cliente con el ID especificado. ';

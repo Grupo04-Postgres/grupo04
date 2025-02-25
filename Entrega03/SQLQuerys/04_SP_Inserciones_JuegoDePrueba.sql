@@ -58,23 +58,23 @@ EXEC dbProducto.InsertarCategoriaProducto 'Auriculares', 1;
 
 -- Prueba 1: Insertar un producto válido
 -- Esperado: Inserción exitosa
-EXEC dbProducto.InsertarProducto 'iPhone 13', 1000, 1100, 'UN', '2024-06-01', '1 unidad', 1;
+EXEC dbProducto.InsertarProducto 'iPhone 13', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 1;
 
 -- Prueba 2: Intentar insertar un producto con nombre vacío
 -- Esperado: Error 'El nombre no puede ser vacío.'
-EXEC dbProducto.InsertarProducto '', 1000, 1100, 'UN', '2024-06-01', '1 unidad', 1;
+EXEC dbProducto.InsertarProducto '', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 1;
 
 -- Prueba 3: Intentar insertar un producto con precio negativo
 -- Esperado: Error 'El precio debe ser mayor a 0.'
-EXEC dbProducto.InsertarProducto 'Samsung S21', -500, 1100, 'UN', '2024-06-01', '1 unidad', 1;
+EXEC dbProducto.InsertarProducto 'Samsung S21', -500, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 1;
 
 -- Prueba 4: Intentar insertar un producto con línea de producto inexistente
 -- Esperado: Error 'No existe una categoria de producto con el ID especificado.'
-EXEC dbProducto.InsertarProducto 'Samsung S21', 1000, 1100, 'UN', '2024-06-01', '1 unidad', 999;
+EXEC dbProducto.InsertarProducto 'Samsung S21', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 999;
 
 -- Prueba 2: Insertar un producto válido
 -- Esperado: Inserción exitosa
-EXEC dbProducto.InsertarProducto 'Auricular inalambrico', 1000, 1100, 'UN', '2024-06-01', '1 unidad', 2;
+EXEC dbProducto.InsertarProducto 'Auricular inalambrico', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 2;
 
 
 ---------------------------------------------------------------------
@@ -175,10 +175,6 @@ EXEC dbVenta.InsertarMetodoPago '   ';
 -- Prueba 1: Insertar una venta válida.
 -- Esperado: Inserción exitosa.
 EXEC dbVenta.InsertarVenta '2025-01-10', '12:30', 'AAA', 1, 1, '222-22-2222', 1;
-
--- Prueba 2: Intentar insertar con identificador de pago vacío.
--- Esperado: Error 'El identificador de pago no puede estar vacio.'
-EXEC dbVenta.InsertarVenta '2025-01-10', '12:30', '  ', 1, 1, '222-22-2222', 1;
 
 
 ---------------------------------------------------------------------

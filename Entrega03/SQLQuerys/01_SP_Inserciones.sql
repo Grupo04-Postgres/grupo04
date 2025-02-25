@@ -88,11 +88,11 @@ GO
 -- PRODUCTO --
 
 CREATE OR ALTER PROCEDURE dbProducto.InsertarProducto
-    @nombre VARCHAR(50), 
+    @nombre VARCHAR(100), 
     @precio DECIMAL(10,2), 
     @precioReferencia DECIMAL(10,2) = NULL, 
-    @unidadReferencia CHAR(2) = NULL,
-    @fecha DATE = NULL, 
+    @unidadReferencia VARCHAR(10) = NULL,
+    @fecha DATETIME = NULL, 
     @cantidadUnitaria VARCHAR(50) = NULL,
     @idCategoriaProducto INT 
 AS
@@ -352,13 +352,6 @@ CREATE OR ALTER PROCEDURE dbVenta.InsertarVenta
     @idMetodoPago INT
 AS
 BEGIN
-    -- Validaciones
-    IF LTRIM(RTRIM(@identificadorPago)) = '' 
-    BEGIN
-        RAISERROR('El identificador de pago no puede estar vacio.', 16, 1);
-        RETURN;
-    END
-
     -- Inserción
     INSERT INTO dbVenta.Venta (fecha, hora, identificadorPago, legajoEmpleado, idCliente, idFactura, idMetodoPago)
     VALUES (@fecha, @hora, @identificadorPago, @legajoEmpleado, @idCliente, @idFactura, @idMetodoPago);
