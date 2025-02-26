@@ -456,7 +456,6 @@ GO
 -- DETALLE DE VENTA --
 
 CREATE OR ALTER PROCEDURE dbVenta.ActualizarDetalleVenta
-    @idVenta INT,
     @idDetalleVenta INT,
     @idProducto INT = NULL,
     @cantidad INT = NULL,
@@ -467,7 +466,7 @@ BEGIN
     DECLARE @error VARCHAR(MAX) = '';
 
     -- Validaciones
-    IF NOT EXISTS (SELECT 1 FROM dbVenta.DetalleVenta WHERE idVenta = @idVenta AND idDetalleVenta = @idDetalleVenta)
+    IF NOT EXISTS (SELECT 1 FROM dbVenta.DetalleVenta WHERE idDetalleVenta = @idDetalleVenta)
         SET @error = @error + 'No existe un detalle de venta con el ID especificado. ';
     
     IF @cantidad IS NOT NULL AND @cantidad <= 0
@@ -491,7 +490,7 @@ BEGIN
             cantidad = COALESCE(@cantidad, cantidad),
             precioUnitarioAlMomentoDeLaVenta = COALESCE(@precioUnitarioAlMomentoDeLaVenta, precioUnitarioAlMomentoDeLaVenta),
             subtotal = COALESCE(@subtotal, subtotal)
-        WHERE idVenta = @idVenta AND idDetalleVenta = @idDetalleVenta;
+        WHERE idDetalleVenta = @idDetalleVenta;
     END
 END
 GO

@@ -361,21 +361,21 @@ EXEC dbVenta.ActualizarVenta @idVenta = 1, @idMetodoPago = 99;
 -- Inicial: cantidad = 1, precioUnitarioAlMomentoDeLaVenta = 1, subtotal = 1
 -- Esperado: cantidad = 2, precioUnitarioAlMomentoDeLaVenta = 5, subtotal = 10
 SELECT * FROM dbVenta.DetalleVenta
-EXEC dbVenta.ActualizarDetalleVenta @idVenta = 1, @idDetalleVenta = 1, @cantidad = 2, @precioUnitarioAlMomentoDeLaVenta = 5, @subtotal = 10;
+EXEC dbVenta.ActualizarDetalleVenta @idDetalleVenta = 1, @cantidad = 2, @precioUnitarioAlMomentoDeLaVenta = 5, @subtotal = 10;
 SELECT * FROM dbVenta.DetalleVenta
 
 -- Prueba 2: Intentar actualizar cantidad invalida (negativo)
 -- Esperado: Error= "La cantidad debe ser mayor a 0."
-EXEC dbVenta.ActualizarDetalleVenta @idVenta = 1, @idDetalleVenta = 1, @cantidad = -2;
+EXEC dbVenta.ActualizarDetalleVenta @idDetalleVenta = 1, @cantidad = -2;
 
 -- Prueba 3: Intentar actualizar precioUnitarioAlMomentoDeLaVenta invalida (negativo)
 -- Esperado: Error= "El precio unitario debe ser mayor a 0."
-EXEC dbVenta.ActualizarDetalleVenta @idVenta = 1, @idDetalleVenta = 1, @precioUnitarioAlMomentoDeLaVenta = -2;
+EXEC dbVenta.ActualizarDetalleVenta @idDetalleVenta = 1, @precioUnitarioAlMomentoDeLaVenta = -2;
 
 -- Prueba 3: Intentar actualizar precioUnitarioAlMomentoDeLaVenta invalida (negativo)
 -- Esperado: Error= "El subtotal debe ser mayor a 0."
-EXEC dbVenta.ActualizarDetalleVenta @idVenta = 1, @idDetalleVenta = 1, @subtotal = -2;
+EXEC dbVenta.ActualizarDetalleVenta @idDetalleVenta = 1, @subtotal = -2;
 
 -- Prueba 5: Intentar actualizar un detalle de venta no existente
--- Esperado: Error: "No existe una factura con el ID especificado."
-EXEC dbVenta.ActualizarDetalleVenta @idVenta = 99, @idDetalleVenta = 1, @cantidad = 2;
+-- Esperado: Error: "No existe un detalle de venta con el ID especificado."
+EXEC dbVenta.ActualizarDetalleVenta @idDetalleVenta = 99, @cantidad = 2;

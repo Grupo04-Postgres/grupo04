@@ -384,16 +384,9 @@ BEGIN
         RAISERROR(@error, 16, 1);
     ELSE
     BEGIN
-		 -- Obtener el siguiente idDetalleVenta para este idVenta
-		DECLARE @sigIdDetalleVenta INT;
-    
-		SELECT @sigIdDetalleVenta = ISNULL(MAX(idDetalleVenta), 0) + 1
-		FROM dbVenta.DetalleVenta
-		WHERE idVenta = @idVenta;
-
 		-- Inserción
-		INSERT INTO dbVenta.DetalleVenta (idDetalleVenta, idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
-		VALUES (@sigIdDetalleVenta, @idVenta, @idProducto, @cantidad, @precioUnitarioAlMomentoDeLaVenta, @cantidad * @precioUnitarioAlMomentoDeLaVenta);
+		INSERT INTO dbVenta.DetalleVenta (idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
+		VALUES (@idVenta, @idProducto, @cantidad, @precioUnitarioAlMomentoDeLaVenta, @cantidad * @precioUnitarioAlMomentoDeLaVenta);
 	END
 END
 GO

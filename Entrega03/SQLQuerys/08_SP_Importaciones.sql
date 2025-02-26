@@ -861,9 +861,8 @@ BEGIN
 
 
 	-- Inserto detalles de venta solo si no existen
-	INSERT INTO dbVenta.DetalleVenta(idDetalleVenta, idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
+	INSERT INTO dbVenta.DetalleVenta(idVenta, idProducto, cantidad, precioUnitarioAlMomentoDeLaVenta, subtotal)
 	SELECT 
-		ROW_NUMBER() OVER (PARTITION BY V.idVenta ORDER BY P.idProducto) AS idDetalleVenta, 
 		V.idVenta, 
 		P.idProducto, 
 		D.cantidad, 

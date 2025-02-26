@@ -58,6 +58,7 @@ GO
 ---------------------------------------------------------------------
 -- Borrar tablas si ya existen
 
+IF OBJECT_ID('dbVenta.NotaDeCredito', 'U') IS NOT NULL DROP TABLE dbVenta.NotaDeCredito
 IF OBJECT_ID('dbVenta.DetalleVenta', 'U') IS NOT NULL DROP TABLE dbVenta.DetalleVenta
 IF OBJECT_ID('dbVenta.Venta', 'U') IS NOT NULL DROP TABLE dbVenta.Venta
 IF OBJECT_ID('dbVenta.MetodoPago', 'U') IS NOT NULL DROP TABLE dbVenta.MetodoPago
@@ -169,13 +170,28 @@ CREATE TABLE dbVenta.Venta (
 GO
 
 CREATE TABLE dbVenta.DetalleVenta (
-	idDetalleVenta INT,   -- En el SP para insertar tenemos que poner que sea incremental para cada idVenta
-	idVenta INT NOT NULL REFERENCES dbVenta.Venta(idVenta),
-	idProducto INT NOT NULL REFERENCES dbProducto.Producto(idProducto),
-	cantidad INT NOT NULL,
-	precioUnitarioAlMomentoDeLaVenta DECIMAL(10,2) NOT NULL,
-	subtotal DECIMAL(10,2) NOT NULL,
-	PRIMARY KEY CLUSTERED (idVenta, idDetalleVenta)
+    idDetalleVenta INT IDENTITY(1,1) PRIMARY KEY, 
+    idVenta INT NOT NULL REFERENCES dbVenta.Venta(idVenta),
+    idProducto INT NOT NULL REFERENCES dbProducto.Producto(idProducto),
+    cantidad INT NOT NULL,
+    precioUnitarioAlMomentoDeLaVenta DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL
 )
 GO
 
+
+---------------------------------------------------------------------
+-- Crear tabla nota de credito
+
+CREATE TABLE dbVenta.NotaDeCredito(
+	IdNotaDeCredito INT IDENTITY (1,1) PRIMARY KEY,
+	idDetalleVenta INT NOT NULL REFERENCES dbVenta.DetalleVenta(idDetalleVenta),
+	comprobante CHAR(8) NOT NULL,
+	motivo VARCHAR(150) NOT NULL,
+	fecha DATE NOT NULL,
+	hora TIME NOT NULL,
+
+	idProductoCambio INT REFERENCES dbProducto.Producto(idProducto),
+	monto DECIMAL(10,2),
+)
+GO
