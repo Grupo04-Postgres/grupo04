@@ -396,102 +396,102 @@ GO
 CREATE OR ALTER PROCEDURE dbProducto.ImportarCatalogo (@RutaArchivo VARCHAR(1024))
 AS
 BEGIN
-    BEGIN TRY
-        -- Separamos el directorio y el nombre del archivo
-        DECLARE @NombreArchivo VARCHAR(50) = RIGHT(@RutaArchivo, CHARINDEX('/', REVERSE(@RutaArchivo)) - 1);
-        DECLARE @Directorio VARCHAR(100) = LEFT(@RutaArchivo, LEN(@RutaArchivo) - CHARINDEX('/', REVERSE(@RutaArchivo)));
+    -- Separamos el directorio y el nombre del archivo
+    DECLARE @NombreArchivo VARCHAR(50) = RIGHT(@RutaArchivo, CHARINDEX('/', REVERSE(@RutaArchivo)) - 1);
+    DECLARE @Directorio VARCHAR(100) = LEFT(@RutaArchivo, LEN(@RutaArchivo) - CHARINDEX('/', REVERSE(@RutaArchivo)));
 
-        -- Crear una tabla temporal sin los campos 'id' y 'date'
-        CREATE TABLE #TempProducto (
-            category VARCHAR(50) COLLATE Modern_Spanish_CI_AS,
-            name VARCHAR(100) COLLATE Modern_Spanish_CI_AS,
-            price DECIMAL(10,2),
-            reference_price DECIMAL(10,2),
-            reference_unit VARCHAR(10) COLLATE Modern_Spanish_CI_AS,
-            date DATETIME
-        );
+    -- Crear una tabla temporal sin los campos 'id' y 'date'
+    CREATE TABLE #TempProducto (
+		id INT,
+        category VARCHAR(50) COLLATE Modern_Spanish_CI_AS,
+        name VARCHAR(100) COLLATE Modern_Spanish_CI_AS,
+        price DECIMAL(10,2),
+        reference_price DECIMAL(10,2),
+        reference_unit VARCHAR(10) COLLATE Modern_Spanish_CI_AS,
+        date DATETIME
+    );
 
-        -- Realizar la carga del archivo CSV usando BULK INSERT
-		DECLARE @SQL VARCHAR(MAX);
+    -- Realizar la carga del archivo CSV usando BULK INSERT
+	DECLARE @SQL VARCHAR(MAX);
         
 
-		SET @SQL = 'INSERT INTO #TempProducto (category, name, price, reference_price, reference_unit, date)
-        SELECT 
-            category,
-            -- Reemplazamos las secuencias erróneas de caracteres en la columna name
-            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, ''Ã¡'', ''á''), 
-                ''Ã©'', ''é''), 
-                ''Ã­'', ''í''), 
-                ''Ã³'', ''ó''), 
-                ''Ãº'', ''ú''), 
-                ''Ã±'', ''ñ''), 
-                ''Ã‘'', ''Ñ'') AS name,
-            price,
-            reference_price,
-            reference_unit,
-            date
-        FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
-            ''Text;HDR=YES;FMT=Delimited;Database=' + @Directorio + ''',
-            ''SELECT * FROM [' + @NombreArchivo + ']'');';
+	SET @SQL = 'INSERT INTO #TempProducto (id, category, name, price, reference_price, reference_unit, date)
+    SELECT 
+		id,
+        category,
+        -- Reemplazamos las secuencias erróneas de caracteres en la columna name
+        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, ''Ã¡'', ''á''), 
+            ''Ã©'', ''é''), 
+            ''Ã­'', ''í''), 
+            ''Ã³'', ''ó''), 
+            ''Ãº'', ''ú''), 
+            ''Ã±'', ''ñ''), 
+            ''Ã‘'', ''Ñ'') AS name,
+        CAST(price AS DECIMAL(10, 2)),  -- Aseguramos que el precio se almacene como decimal
+		CAST(reference_price AS DECIMAL(10, 2)),  -- Hacemos lo mismo con el precio de referencia
+		reference_unit,
+		date
+    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+        ''Text;HDR=YES;FMT=Delimited;Database=' + @Directorio + ''',
+        ''SELECT * FROM [' + @NombreArchivo + ']'');';
 
 
-        -- Ejecutar la consulta OPENROWSET
-        EXEC(@SQL);
+    -- Ejecutar la consulta OPENROWSET
+    EXEC(@SQL);
 
 
-    -- Actualizamos los productos existentes
-		UPDATE p
-		SET 
-			p.precio = t.price,
-			p.precioReferencia = t.reference_price,
-			p.unidadReferencia = t.reference_unit,
-			p.fecha = t.date,
-			p.idCategoriaProducto = (
-				SELECT idCategoriaProducto
-				FROM dbProducto.CategoriaProducto
-				WHERE nombre COLLATE Modern_Spanish_CI_AS = t.category COLLATE Modern_Spanish_CI_AS
-			)
-		FROM dbProducto.Producto p
-		INNER JOIN #TempProducto t ON p.nombre COLLATE Modern_Spanish_CI_AS = t.name COLLATE Modern_Spanish_CI_AS;
-
-		-- Insertamos los productos que no existen
-
-		WITH ProductosUnicos AS (
-			SELECT 
-				name,
-				AVG(price) AS price, 
-				AVG(reference_price) AS reference_price,  
-				MAX(reference_unit) AS reference_unit,  -- Se toma la unidad de referencia más frecuente
-				MAX(date) AS date,  -- Se toma la fecha más reciente
-				MAX(category) AS category  -- Se toma la categoría más frecuente
-			FROM #TempProducto
-			GROUP BY name
+-- Actualizamos los productos existentes
+	UPDATE p
+	SET 
+		p.precio = t.price,
+		p.precioReferencia = t.reference_price,
+		p.unidadReferencia = t.reference_unit,
+		p.fecha = t.date,
+		p.idCategoriaProducto = (
+			SELECT idCategoriaProducto
+			FROM dbProducto.CategoriaProducto
+			WHERE nombre COLLATE Modern_Spanish_CI_AS = t.category COLLATE Modern_Spanish_CI_AS
 		)
+	FROM dbProducto.Producto p
+	INNER JOIN #TempProducto t ON p.nombre COLLATE Modern_Spanish_CI_AS = t.name COLLATE Modern_Spanish_CI_AS;
 
-		INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, idCategoriaProducto)
+	-- Insertamos los productos que no existen
+	WITH ProductosUnicos AS (
 		SELECT 
-			t.name,
-			t.price,
-			t.reference_price,
-			t.reference_unit,
-			t.date,
-			(SELECT idCategoriaProducto
-			 FROM dbProducto.CategoriaProducto
-			 WHERE nombre COLLATE Modern_Spanish_CI_AS = t.category COLLATE Modern_Spanish_CI_AS)
-		FROM ProductosUnicos t
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM dbProducto.Producto p
-			WHERE p.nombre COLLATE Modern_Spanish_CI_AS = t.name COLLATE Modern_Spanish_CI_AS
-		);
+			name,
+			price, 
+			reference_price,  
+			reference_unit,  
+			date, 
+			category 
+		FROM #TempProducto t
+		WHERE t.id = (
+			SELECT MAX(id)
+			FROM #TempProducto
+			WHERE name = t.name
+		)
+	)
 
-        -- Limpiar la tabla temporal
-        DROP TABLE #TempProducto;
+	INSERT INTO dbProducto.Producto (nombre, precio, precioReferencia, unidadReferencia, fecha, idCategoriaProducto)
+	SELECT 
+		t.name,
+		t.price,
+		t.reference_price,
+		t.reference_unit,
+		t.date,
+		(SELECT idCategoriaProducto
+			FROM dbProducto.CategoriaProducto
+			WHERE nombre COLLATE Modern_Spanish_CI_AS = t.category COLLATE Modern_Spanish_CI_AS)
+	FROM ProductosUnicos t
+	WHERE NOT EXISTS (
+		SELECT 1
+		FROM dbProducto.Producto p
+		WHERE p.nombre COLLATE Modern_Spanish_CI_AS = t.name COLLATE Modern_Spanish_CI_AS
+	);
 
-    END TRY
-    BEGIN CATCH
-        PRINT 'Error: ' + ERROR_MESSAGE();
-    END CATCH
+
+    -- Limpiar la tabla temporal
+    DROP TABLE #TempProducto;
 END;
 GO
 
@@ -500,159 +500,154 @@ GO
 CREATE OR ALTER PROCEDURE dbProducto.ImportarProductosElectronica (@RutaArchivo VARCHAR(1024))
 AS
 BEGIN
-	BEGIN TRY
-		--Seteo palabras clave por categoria, para poder agrupar los productos de forma automatica.
-		CREATE TABLE #PalabrasClavePorCategoria(
-			idCategoria INT,
-			palabrasClave VARCHAR(255) COLLATE Modern_Spanish_CI_AS
+	--Seteo palabras clave por categoria, para poder agrupar los productos de forma automatica.
+	CREATE TABLE #PalabrasClavePorCategoria(
+		idCategoria INT,
+		palabrasClave VARCHAR(255) COLLATE Modern_Spanish_CI_AS
 
-		);
-		INSERT INTO #PalabrasClavePorCategoria(idCategoria, palabrasClave)
-		SELECT 
-			cp.idCategoriaProducto, 
-			'Laptop' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Laptop'
+	);
+	INSERT INTO #PalabrasClavePorCategoria(idCategoria, palabrasClave)
+	SELECT 
+		cp.idCategoriaProducto, 
+		'Laptop' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Laptop'
 
-		UNION ALL
+	UNION ALL
 
-		SELECT 
-			cp.idCategoriaProducto, 
-			'LG' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Electrodoméstico'
+	SELECT 
+		cp.idCategoriaProducto, 
+		'LG' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Electrodoméstico'
 
-		UNION ALL
+	UNION ALL
 
-		SELECT 
-			cp.idCategoriaProducto, 
-			'Charging,Cable' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Cargador'
+	SELECT 
+		cp.idCategoriaProducto, 
+		'Charging,Cable' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Cargador'
 
-		UNION ALL
+	UNION ALL
 
-		SELECT 
-			cp.idCategoriaProducto, 
-			'AA,AAA' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Batería'
+	SELECT 
+		cp.idCategoriaProducto, 
+		'AA,AAA' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Batería'
 
-		UNION ALL
+	UNION ALL
 
-		SELECT 
-			cp.idCategoriaProducto, 
-			'Monitor' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Monitor'
+	SELECT 
+		cp.idCategoriaProducto, 
+		'Monitor' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Monitor'
 
-		UNION ALL
+	UNION ALL
 
-		SELECT 
-			cp.idCategoriaProducto, 
-			'Headphones' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Auricular'
+	SELECT 
+		cp.idCategoriaProducto, 
+		'Headphones' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Auricular'
 
-		UNION ALL
+	UNION ALL
 
-		SELECT 
-			cp.idCategoriaProducto, 
-			'Phone,iPhone' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Teléfono'
+	SELECT 
+		cp.idCategoriaProducto, 
+		'Phone,iPhone' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Teléfono'
 
-		UNION ALL
+	UNION ALL
 
-		SELECT 
-			cp.idCategoriaProducto, 
-			'TV' AS palabrasClave
-		FROM dbProducto.CategoriaProducto cp
-		WHERE cp.nombre = 'Televisor';
+	SELECT 
+		cp.idCategoriaProducto, 
+		'TV' AS palabrasClave
+	FROM dbProducto.CategoriaProducto cp
+	WHERE cp.nombre = 'Televisor';
 
 
-		-- Carga de productos en tabla temporal
-		CREATE TABLE #ProductosTemporales (
-			Producto VARCHAR(255) COLLATE Modern_Spanish_CI_AS,
-			Precio DECIMAL(10,2)
-		);
+	-- Carga de productos en tabla temporal
+	CREATE TABLE #ProductosTemporales (
+		Producto VARCHAR(255) COLLATE Modern_Spanish_CI_AS,
+		Precio DECIMAL(10,2)
+	);
 
-		DECLARE @CotizacionUSDActual DECIMAL(10,2);
-		EXEC dbSistema.ObtenerCotizacionUSD @CotizacionUSDActual OUTPUT;
+	DECLARE @CotizacionUSDActual DECIMAL(10,2);
+	EXEC dbSistema.ObtenerCotizacionUSD @CotizacionUSDActual OUTPUT;
 	
-		IF @CotizacionUSDActual IS NOT NULL
-		BEGIN
-			DECLARE @Sql VARCHAR(MAX) = '
-			INSERT INTO #ProductosTemporales (Producto, Precio)
-			SELECT 
-			[Product], 
-			[Precio Unitario en dolares] 
-			FROM OPENROWSET(
-					''Microsoft.ACE.OLEDB.12.0'',
-					''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'',
-					''SELECT [Product], [Precio Unitario en dolares] FROM [Sheet1$]'');
-			';
+	IF @CotizacionUSDActual IS NOT NULL
+	BEGIN
+		DECLARE @Sql VARCHAR(MAX) = '
+		INSERT INTO #ProductosTemporales (Producto, Precio)
+		SELECT 
+		[Product], 
+		[Precio Unitario en dolares] 
+		FROM OPENROWSET(
+				''Microsoft.ACE.OLEDB.12.0'',
+				''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'',
+				''SELECT [Product], [Precio Unitario en dolares] FROM [Sheet1$]'');
+		';
 
-			EXEC(@Sql);
+		EXEC(@Sql);
 
-
-			UPDATE p
-			SET 
-				p.precio = t.Precio * @CotizacionUSDActual,
-				p.idCategoriaProducto = c.idCategoria
-			FROM dbProducto.Producto p
-			JOIN #ProductosTemporales t ON p.nombre = t.Producto
-			CROSS APPLY (
-				SELECT TOP 1 idCategoria
-				FROM #PalabrasClavePorCategoria p
-				WHERE EXISTS (
-					SELECT 1 FROM STRING_SPLIT(p.palabrasClave, ',') s
-					WHERE CHARINDEX(s.value, t.Producto) > 0
-				)
-				ORDER BY LEN(p.palabrasClave) DESC
-			) c;
-
-
-			WITH ProductosUnicos AS (
-			SELECT 
-				Producto, 
-				AVG(Precio) AS Precio  
-			FROM #ProductosTemporales
-			GROUP BY Producto
+		-- Actualizar productos existentes
+		UPDATE p
+		SET 
+			p.precio = t.Precio * @CotizacionUSDActual,
+			p.idCategoriaProducto = c.idCategoria
+		FROM dbProducto.Producto p
+		JOIN #ProductosTemporales t ON p.nombre = t.Producto
+		CROSS APPLY (
+			SELECT TOP 1 idCategoria
+			FROM #PalabrasClavePorCategoria p
+			WHERE EXISTS (
+				SELECT 1 FROM STRING_SPLIT(p.palabrasClave, ',') s
+				WHERE CHARINDEX(s.value, t.Producto) > 0
 			)
+			ORDER BY LEN(p.palabrasClave) DESC
+		) c;
 
-			INSERT INTO dbProducto.Producto (nombre, precio, idCategoriaProducto)
-			SELECT 
-				t.Producto,
-				t.Precio * @CotizacionUSDActual,  -- Convertimos el precio a la moneda local
-				c.idCategoria
-			FROM ProductosUnicos t
-			CROSS APPLY (
-				SELECT TOP 1 idCategoria
-				FROM #PalabrasClavePorCategoria p
-				WHERE EXISTS (
-					SELECT 1 FROM STRING_SPLIT(p.palabrasClave, ',') s
-					WHERE CHARINDEX(s.value, t.Producto) > 0
-				)
-				ORDER BY LEN(p.palabrasClave) DESC
-			) c
-			WHERE NOT EXISTS (
-				SELECT 1 FROM dbProducto.Producto p WHERE p.nombre = t.Producto
-			);
+		-- Insertar productos nuevos
+		WITH ProductosUnicos AS (
+		SELECT 
+			Producto, 
+			AVG(Precio) Precio  
+		FROM #ProductosTemporales
+		GROUP BY Producto
+		)
 
-		
-			PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
-		END
-		ELSE
-		BEGIN
-			PRINT 'Error al cargar el catalogo: ' + @RutaArchivo;
-		END;
+		INSERT INTO dbProducto.Producto (nombre, precio, idCategoriaProducto)
+		SELECT 
+			t.Producto,
+			t.Precio * @CotizacionUSDActual,  -- Convertimos el precio a la moneda local
+			c.idCategoria
+		FROM ProductosUnicos t
+		CROSS APPLY (
+			SELECT TOP 1 idCategoria
+			FROM #PalabrasClavePorCategoria p
+			WHERE EXISTS (
+				SELECT 1 FROM STRING_SPLIT(p.palabrasClave, ',') s
+				WHERE CHARINDEX(s.value, t.Producto) > 0
+			)
+			ORDER BY LEN(p.palabrasClave) DESC
+		) c
+		WHERE NOT EXISTS (
+			SELECT 1 FROM dbProducto.Producto p WHERE p.nombre = t.Producto
+		);
 
-		DROP TABLE #PalabrasClavePorCategoria;
-	END TRY
-	BEGIN CATCH
-		PRINT 'Ocurrió un error: ' + ERROR_MESSAGE();
-	END CATCH;
+
+		PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
+	END
+	ELSE
+	BEGIN
+		PRINT 'Error al cargar el catalogo: ' + @RutaArchivo;
+	END;
+
+	DROP TABLE #PalabrasClavePorCategoria;
 END;
 GO
 
@@ -661,147 +656,89 @@ GO
 CREATE OR ALTER PROCEDURE dbProducto.ImportarProductosImportados(@RutaArchivo VARCHAR(1024))
 AS
 BEGIN
+	-- Crear tabla temporal para leer el archivo
     CREATE TABLE #tempProductoImportado (
-        nombre VARCHAR(50),
-        categoria VARCHAR(50),
-        cantidadUnitaria VARCHAR(50),
-        precio DECIMAL(10,2),
-        idCategoria INT
+		idProducto INT,
+		NombreProducto VARCHAR(255) COLLATE Modern_Spanish_CI_AS,
+		Categoría VARCHAR(100) COLLATE Modern_Spanish_CI_AS,
+		CantidadPorUnidad VARCHAR(100) COLLATE Modern_Spanish_CI_AS,
+		PrecioUnidad DECIMAL(10,2)
     );
 
     DECLARE @Consulta VARCHAR(2048) = '
-        INSERT INTO #tempProductoImportado (nombre, categoria, cantidadUnitaria, precio)
-        SELECT NombreProducto, Categoría, CantidadPorUnidad, PrecioUnidad
+        INSERT INTO #tempProductoImportado (idProducto, NombreProducto, Categoría, CantidadPorUnidad, PrecioUnidad)
+        SELECT idProducto, NombreProducto, Categoría, CantidadPorUnidad, PrecioUnidad
         FROM OPENROWSET(
             ''Microsoft.ACE.OLEDB.12.0'',
             ''Excel 12.0;HDR=YES;IMEX=1;Database=' + @RutaArchivo + ''',
-            ''SELECT [NombreProducto], [Categoría], [CantidadPorUnidad], [PrecioUnidad] FROM [Listado de Productos$]''
+            ''SELECT [idProducto], [NombreProducto], [Categoría], [CantidadPorUnidad], [PrecioUnidad] FROM [Listado de Productos$]''
         )';
     
     EXEC (@Consulta);
 
-    WITH CTE_Categorias AS (
+	-- Crear linea de producto Importado si no existe
+	IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE nombre = 'Importado')
+    BEGIN
+        INSERT INTO dbProducto.LineaProducto (nombre) VALUES ('Importado');
+    END
+
+	-- Obtener el ID de la linea de producto
+	DECLARE @idLineaProducto INT;
+    SELECT @idLineaProducto = idLineaProducto FROM dbProducto.LineaProducto WHERE nombre = 'Importado';
+
+	-- Insertar nuevas categorías si no existen
+    INSERT INTO dbProducto.CategoriaProducto (nombre, idLineaProducto)
+    SELECT DISTINCT t.Categoría, @idLineaProducto
+    FROM #tempProductoImportado t
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbProducto.CategoriaProducto c WHERE c.nombre = t.Categoría
+    );
+
+	-- Actualizar productos que ya existen
+    UPDATE p
+    SET 
+        p.precio = t.PrecioUnidad,
+        p.cantidadUnitaria = t.CantidadPorUnidad,
+        p.idCategoriaProducto = c.idCategoriaProducto
+    FROM dbProducto.Producto p
+    INNER JOIN #tempProductoImportado t ON p.nombre = t.NombreProducto
+    INNER JOIN dbProducto.CategoriaProducto c ON t.Categoría = c.nombre;
+
+    -- Insertar productos que no existen
+	WITH ProductosUnicos AS (
         SELECT 
-            catProd.idCategoriaProducto,
-            tempTablaArchivo.nombre AS nombreProdImportado,
-            catProd.nombre AS nombreCategoriaEnTabla,
-            ROW_NUMBER() OVER (
-                PARTITION BY tempTablaArchivo.nombre 
-                ORDER BY COUNT(categoria_split.value) ASC
-            ) AS nroFila
-        FROM #tempProductoImportado AS tempTablaArchivo
-        JOIN dbProducto.CategoriaProducto AS catProd
-            ON EXISTS (
-                SELECT 1
-                FROM STRING_SPLIT(catProd.nombre, '_') AS categoria_split
-                WHERE 
-                    categoria_split.value COLLATE Latin1_General_CI_AI = LEFT(tempTablaArchivo.nombre, CHARINDEX(' ', tempTablaArchivo.nombre + ' ') - 1) COLLATE Latin1_General_CI_AI
-                    OR categoria_split.value COLLATE Latin1_General_CI_AI + 's' = LEFT(tempTablaArchivo.nombre, CHARINDEX(' ', tempTablaArchivo.nombre + ' ') - 1) COLLATE Latin1_General_CI_AI
-                    OR categoria_split.value COLLATE Latin1_General_CI_AI = LEFT(tempTablaArchivo.nombre, CHARINDEX(' ', tempTablaArchivo.nombre + ' ') - 1) + 's' COLLATE Latin1_General_CI_AI 
-            )
-        CROSS APPLY STRING_SPLIT(catProd.nombre, '_') AS categoria_split
-        GROUP BY catProd.idCategoriaProducto, tempTablaArchivo.nombre, catProd.nombre
+            NombreProducto, 
+            Categoría, 
+            CantidadPorUnidad, 
+            PrecioUnidad
+			FROM #tempProductoImportado t
+			WHERE t.idProducto = (
+				SELECT MAX(idProducto)
+				FROM #tempProductoImportado
+				WHERE NombreProducto = t.NombreProducto
+			)
     )
-    UPDATE t
-    SET t.idCategoria = c.idCategoriaProducto
-    FROM #tempProductoImportado t
-    JOIN CTE_Categorias C ON c.nombreProdImportado = t.nombre
-    WHERE c.nroFila = 1;
-
-    SELECT * FROM #tempProductoImportado t WHERE t.idCategoria IS NULL;
-
-    WITH CTE_CategoriaProdImportadosSplit AS (
-        SELECT
-            catProd.idCategoriaProducto,
-            temp.nombre AS nombreProdImportado,
-            catSplit.value AS categoriaProdImportadosSeparada,
-            catProd.nombre AS CategoriaCompleta,
-            ROW_NUMBER() OVER (
-                PARTITION BY temp.nombre 
-                ORDER BY COUNT(categoria_split.value) ASC
-            ) AS nroFila
-        FROM #tempProductoImportado AS temp
-        CROSS APPLY STRING_SPLIT(temp.categoria, '/') AS catSplit
-        JOIN dbProducto.CategoriaProducto AS catProd
-            ON EXISTS (
-                SELECT 1
-                FROM STRING_SPLIT(catProd.nombre, '_') AS categoria_split
-                WHERE 
-                    categoria_split.value COLLATE Latin1_General_CI_AI = catSplit.value COLLATE Latin1_General_CI_AI
-                    OR categoria_split.value COLLATE Latin1_General_CI_AI = catSplit.value + 's' COLLATE Latin1_General_CI_AI
-                    OR categoria_split.value + 's' COLLATE Latin1_General_CI_AI = catSplit.value COLLATE Latin1_General_CI_AI
-            )
-        CROSS APPLY STRING_SPLIT(catProd.nombre, '_') AS categoria_split
-        WHERE temp.idCategoria IS NULL
-        GROUP BY catProd.idCategoriaProducto, temp.nombre, catSplit.value, catProd.nombre
-    )
-    UPDATE t
-    SET t.idCategoria = c.idCategoriaProducto
-    FROM #tempProductoImportado t
-    JOIN CTE_CategoriaProdImportadosSplit c ON c.nombreProdImportado = t.nombre
-    WHERE c.nroFila = 1;
-
-    SELECT * FROM #tempProductoImportado t WHERE t.idCategoria IS NULL;
-
-    WITH CTE_palabrasPorCategoriaFaltantes AS (
-        SELECT 
-            c.idCategoriaProducto,
-            t.nombre AS nombreProdImportado,
-            ROW_NUMBER() OVER (PARTITION BY t.nombre ORDER BY COUNT(categoria_split.value) ASC) AS nroFila
-        FROM dbProducto.CategoriaProducto AS c
-        JOIN #tempProductoImportado t 
-            ON EXISTS (
-                SELECT 1
-                FROM STRING_SPLIT(c.nombre, '_') AS categoria_split
-                WHERE 
-                    categoria_split.value COLLATE Latin1_General_CI_AI = t.categoria COLLATE Latin1_General_CI_AI
-                    OR categoria_split.value COLLATE Latin1_General_CI_AI = t.categoria + 's' COLLATE Latin1_General_CI_AI
-                    OR categoria_split.value + 's' COLLATE Latin1_General_CI_AI = t.categoria COLLATE Latin1_General_CI_AI    
-            )
-        CROSS APPLY STRING_SPLIT(c.nombre, '_') AS categoria_split
-        WHERE t.idCategoria IS NULL
-        GROUP BY c.idCategoriaProducto, t.nombre
-    )
-    UPDATE t
-    SET t.idCategoria = c.idCategoriaProducto
-    FROM #tempProductoImportado t
-    JOIN CTE_palabrasPorCategoriaFaltantes c ON c.nombreProdImportado = t.nombre
-    WHERE c.nroFila = 1;
-
-    SELECT * FROM #tempProductoImportado t WHERE t.idCategoria IS NULL;
-
-    INSERT INTO dbProducto.CategoriaProducto(nombre, idLineaProducto)
-    SELECT DISTINCT t.categoria, (
-        SELECT l.idLineaProducto FROM dbProducto.LineaProducto l WHERE l.nombre = 'Otros'
-    )
-    FROM #tempProductoImportado t
-    WHERE t.idCategoria IS NULL;
-
-    SELECT * FROM dbProducto.CategoriaProducto;
-
-    UPDATE t
-    SET t.idCategoria = (
-        SELECT c.idCategoriaProducto FROM dbProducto.CategoriaProducto c WHERE c.nombre = t.categoria
-    )
-    FROM #tempProductoImportado t
-    WHERE t.idCategoria IS NULL;
-
-    SELECT * FROM #tempProductoImportado t WHERE t.idCategoria IS NULL;
-
+    
     INSERT INTO dbProducto.Producto (nombre, precio, cantidadUnitaria, idCategoriaProducto)
-    SELECT t.nombre, t.precio, t.cantidadUnitaria, t.idCategoria
-    FROM #tempProductoImportado t;
+    SELECT t.NombreProducto, t.PrecioUnidad, t.CantidadPorUnidad, c.idCategoriaProducto
+    FROM ProductosUnicos t
+    INNER JOIN dbProducto.CategoriaProducto c ON t.Categoría = c.nombre
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbProducto.Producto p WHERE p.nombre = t.NombreProducto
+    )
+
 
     DROP TABLE #tempProductoImportado;
 END;
 GO
 
-
--- importar productos
 CREATE OR ALTER PROCEDURE dbProducto.ImportarProductos(@RutaArchivo VARCHAR(1024))
 AS
 BEGIN
 	BEGIN TRY
+		-- Iniciar transacción
+		BEGIN TRANSACTION;
+
 		-- Establecer ruta de catalogos
 		DECLARE @RutaProductosCatalogo VARCHAR(1024)
 		DECLARE @RutaProductosElectronica VARCHAR(1024)
@@ -816,16 +753,21 @@ BEGIN
 		-- Importar productos con la ruta ya establecida.
 		EXEC dbProducto.ImportarCatalogo @RutaProductosCatalogo;
 		EXEC dbProducto.ImportarProductosElectronica @RutaProductosElectronica;
-		--EXEC dbProducto.ImportarProductosImportados  @RutaProductosImportados;
+		EXEC dbProducto.ImportarProductosImportados  @RutaProductosImportados;
 
+		-- Confirmar transacción si todo fue exitoso
+		COMMIT TRANSACTION;
 
 		-- Mostrar mensaje de éxito
 		PRINT 'El archivo Excel es válido y los datos fueron cargados correctamente.';
 	END TRY
 
 	BEGIN CATCH
-		PRINT 'Se ha producido un error: ' + ERROR_MESSAGE();
+		-- Revertir la transacción si ocurre un error
+		ROLLBACK TRANSACTION;
 
+		-- Mostrar mensaje de error
+		PRINT 'Se ha producido un error: ' + ERROR_MESSAGE();
 	END CATCH;
 
 END;

@@ -183,31 +183,74 @@ GO
 
 
 -- Borrar datos ingresados en los juegos de prueba 
-CREATE OR ALTER PROCEDURE dbSistema.BorrarTodo -- Este SP no estaria en la base de datos real, es solo para poder realizar las pruebas sin alterar lo demas
+CREATE OR ALTER PROCEDURE dbSistema.BorrarTodo
 AS
 BEGIN
-	DELETE FROM dbProducto.Producto;               -- ver si se puede hacer con truncate en lugar de delete
-	DELETE FROM dbProducto.CategoriaProducto;
-	DELETE FROM dbProducto.LineaProducto;
-	DELETE FROM dbCliente.Cliente;
-	DELETE FROM dbEmpleado.Empleado;
-	DELETE FROM dbSucursal.Sucursal;
-	DELETE FROM dbVenta.DetalleVenta;
-	DELETE FROM dbVenta.Factura;
-	DELETE FROM dbVenta.MetodoPago;
-	DELETE FROM dbVenta.Venta;
 
-	DBCC CHECKIDENT ('dbVenta.Venta', RESEED, 0);
-	DBCC CHECKIDENT ('dbVenta.MetodoPago', RESEED, 0);
-	DBCC CHECKIDENT ('dbProducto.Producto', RESEED, 0);
-	DBCC CHECKIDENT ('dbProducto.CategoriaProducto', RESEED, 0);
-	DBCC CHECKIDENT ('dbProducto.LineaProducto', RESEED, 0);
-	DBCC CHECKIDENT ('dbCliente.Cliente', RESEED, 0);
-	DBCC CHECKIDENT ('dbSucursal.Sucursal', RESEED, 0);
+    -- Verificar y eliminar solo si la tabla tiene datos
+    IF EXISTS (SELECT 1 FROM dbProducto.Producto)
+    BEGIN
+        DELETE FROM dbProducto.Producto;
+        DBCC CHECKIDENT ('dbProducto.Producto', RESEED, 0);
+    END
+
+    IF EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto)
+    BEGIN
+        DELETE FROM dbProducto.CategoriaProducto;
+        DBCC CHECKIDENT ('dbProducto.CategoriaProducto', RESEED, 0);
+    END
+
+    IF EXISTS (SELECT 1 FROM dbProducto.LineaProducto)
+    BEGIN
+        DELETE FROM dbProducto.LineaProducto;
+        DBCC CHECKIDENT ('dbProducto.LineaProducto', RESEED, 0);
+    END
+
+    IF EXISTS (SELECT 1 FROM dbCliente.Cliente)
+    BEGIN
+        DELETE FROM dbCliente.Cliente;
+        DBCC CHECKIDENT ('dbCliente.Cliente', RESEED, 0);
+    END
+
+    IF EXISTS (SELECT 1 FROM dbEmpleado.Empleado)
+    BEGIN
+        DELETE FROM dbEmpleado.Empleado;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbSucursal.Sucursal)
+    BEGIN
+        DELETE FROM dbSucursal.Sucursal;
+        DBCC CHECKIDENT ('dbSucursal.Sucursal', RESEED, 0);
+    END
+
+    IF EXISTS (SELECT 1 FROM dbVenta.DetalleVenta)
+    BEGIN
+        DELETE FROM dbVenta.DetalleVenta;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbVenta.Factura)
+    BEGIN
+        DELETE FROM dbVenta.Factura;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbVenta.MetodoPago)
+    BEGIN
+        DELETE FROM dbVenta.MetodoPago;
+        DBCC CHECKIDENT ('dbVenta.MetodoPago', RESEED, 0);
+    END
+
+    IF EXISTS (SELECT 1 FROM dbVenta.Venta)
+    BEGIN
+        DELETE FROM dbVenta.Venta;
+        DBCC CHECKIDENT ('dbVenta.Venta', RESEED, 0);
+    END
+
+
 END;
 GO
 EXEC dbSistema.BorrarTodo
 GO
+
 
 
 -- Crear clientes

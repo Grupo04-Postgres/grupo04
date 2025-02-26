@@ -19,7 +19,7 @@ GO
 ---------------------------------------------------------------------
 -- FUNCIONES --
 
-CREATE OR ALTER FUNCTION dbSistema.fnValidarCUIL (@cuil VARCHAR(13))
+CREATE OR ALTER FUNCTION dbSistema.ValidarCUIL (@cuil VARCHAR(13))
 RETURNS BIT
 AS
 BEGIN
@@ -148,7 +148,7 @@ BEGIN
 	DECLARE @error VARCHAR(MAX) = '';
 
     -- Validaciones  
-    IF @cuil IS NOT NULL AND dbSistema.fnValidarCUIL(@cuil) = 0
+    IF @cuil IS NOT NULL AND dbSistema.ValidarCUIL(@cuil) = 0
         SET @error = @error + 'El CUIL es inválido. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = '' 
@@ -241,7 +241,7 @@ BEGIN
     -- Validaciones
 	DECLARE @error VARCHAR(MAX) = '';
     
-    IF dbSistema.fnValidarCUIL(@cuil) = 0
+    IF dbSistema.ValidarCUIL(@cuil) = 0
         SET @error = @error + 'El CUIL es inválido. ';
     
     IF LTRIM(RTRIM(@nombre)) = ''

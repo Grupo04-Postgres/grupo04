@@ -234,3 +234,12 @@ BEGIN
 END
 GO
 
+
+EXEC dbReporte.CantidadProductosVendidosPorRangoFechas '2019-01-01', '2019-12-24';
+EXEC dbReporte.CantidadProductosVendidosPorRangoFechasSucursal '2019-01-01', '2019-12-24';
+EXEC dbReporte.ProductosMasVendidosPorSemana '1', '2019';
+EXEC dbReporte.ProductosMenosVendidosPorMes '1', '2019';
+EXEC dbReporte.TotalAcumuladoVentasPorSucursal '1', '2019';
+EXEC dbReporte.TotalFacturadoPorDiaMensual '1', '2019';
+EXEC dbReporte.TotalFacturadoPorTurnoTrimestral '2019-01-01', '2019-12-24';
+EXEC dbReporte.VendedorMayorTotalFacturadoPorSucursal '1', '2019';

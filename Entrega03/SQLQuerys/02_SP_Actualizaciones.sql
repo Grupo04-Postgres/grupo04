@@ -162,7 +162,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbCliente.Cliente WHERE idCliente = @idCliente)
         SET @error = @error + 'No existe un cliente con el ID especificado. ';
     
-    IF @cuil IS NOT NULL AND dbSistema.fnValidarCUIL(@cuil) = 0
+    IF @cuil IS NOT NULL AND dbSistema.ValidarCUIL(@cuil) = 0
         SET @error = @error + 'El CUIL es inválido. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = '' 
@@ -274,7 +274,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbEmpleado.Empleado WHERE legajoEmpleado = @legajoEmpleado)
         SET @error = @error + 'No existe un empleado con el legajo especificado. ';
     
-    IF @cuil IS NOT NULL AND dbSistema.fnValidarCUIL(@cuil) = 0
+    IF @cuil IS NOT NULL AND dbSistema.ValidarCUIL(@cuil) = 0
         SET @error = @error + 'El CUIL es inválido. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
