@@ -16,6 +16,10 @@ GO
 
 ---------------------------------------------------------------------
 
+
+
+
+
 CREATE OR ALTER PROCEDURE dbVenta.GenerarNotaDeCredito
 	@idDetalleVenta INT,
 	@motivo VARCHAR(150),
@@ -152,3 +156,23 @@ BEGIN
 END
 
 
+--Para conectarse como usuario_supervisor o usuario_empleado se deben seguir estos pasos:
+
+/*
+	1. Acceder a las propiedades del Servidor. 
+		a. Conectase al Servidor y seleccionar Properties del Servidor, en Object Explorer.
+		b. Ir a Security
+		c. Seleccionar SQL Server and Windows Authentication Mode
+	2. Cuando nos conectamos a un Servidor debemos:
+		a. Especificar la base de datos a la que me voy a conectar. 
+		b. En la pestaña Connection Properties -> Connect to Database: Com1353G04
+		c. Una vez hecho esto, debemos ir a Additional Connection Parameters -> TrustServerCertificate=True
+	3. Ya puede conectarse con el usuario y contraseña correctos.
+		a. Podra conectase usando usuario_supervisor o usuario_empleado
+		b. Se debe seleccionar el metodo de autenticacion SQL Server Authentication e ingresar correctamente el usuario y contraseña.
+
+	Usuario			User						Password
+	Supervisor		usuario_supervisor			contraseñaSupervisor
+	Empleado		usuario_empleado			contraseñaEmpleado
+
+*/
