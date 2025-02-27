@@ -159,6 +159,8 @@ END;
 GO
 
 
+
+
 ---------------------------------------------------------------------
 -- EMPLEADOS --
 
@@ -177,8 +179,8 @@ BEGIN
 		emailPersonal VARCHAR(70) COLLATE Modern_Spanish_CI_AS,
 		emailEmpresa VARCHAR(70) COLLATE Modern_Spanish_CI_AS,
 		cargo VARCHAR(30) COLLATE Modern_Spanish_CI_AS,
-		idSucursal INT,
-		turno VARCHAR(16) COLLATE Modern_Spanish_CI_AS,
+		idSucursal INT NOT NULL,
+		turno VARCHAR(16) COLLATE Modern_Spanish_CI_AS CHECK (turno IN ('TM', 'TT', 'Jornada completa')) ,
 		cuil CHAR(13) COLLATE Modern_Spanish_CI_AS,
 		fechaAlta DATE
 	);
@@ -194,6 +196,7 @@ BEGIN
 			(SELECT idSucursal FROM dbSucursal.Sucursal WHERE dbSucursal.Sucursal.sucursal = Excel.Sucursal COLLATE Modern_Spanish_CI_AS
 																AND dbSucursal.Sucursal.estado = 1),
 			GETDATE()
+
 			
 			FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
 							 ''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'',
@@ -203,57 +206,87 @@ BEGIN
 		-- Intentamos ejecutar la consulta
 		EXEC (@CargaDatosArchivo);
 	
-		PRINT 'El archivo Excel es v�lido y los datos fueron cargados correctamente.';
+		PRINT 'El archivo Excel es valido y los datos fueron cargados correctamente.';
 	END TRY
 
 	BEGIN CATCH
-		-- Si ocurre un error (por ejemplo, archivo inv�lido), capturamos el mensaje de error
 		RAISERROR (
-			'Error: El archivo no es v�lido o no se puede acceder.',
+			'Error: El archivo no es valido o no se puede acceder.',
 			10,
 			1
 		);
 		THROW;
 	END CATCH;
+	
+
+	OPEN SYMMETRIC KEY EmpleadoLlave  
+		DECRYPTION BY CERTIFICATE CertificadoEmpleado;  
 
 
 	-- Actualizar empleados existentes
-	UPDATE target
-	SET
-		target.nombre = source.nombre,
-		target.apellido = source.apellido,
-		target.direccion = source.direccion,
-		target.emailPersonal = source.emailPersonal,
-		target.emailEmpresa = source.emailEmpresa,
-		target.cargo = source.cargo,
-		target.idSucursal = source.idSucursal,
-		target.turno = source.turno,
-		target.cuil = source.cuil
-	FROM dbEmpleado.Empleado AS target
-	JOIN #DatosEmpleados AS source ON target.legajoEmpleado = source.legajo
-	WHERE 
-		target.nombre != source.nombre 
-		OR target.apellido != source.apellido
-		OR target.direccion != source.direccion
-		OR target.emailPersonal != source.emailPersonal
-		OR target.emailEmpresa != source.emailEmpresa
-		OR target.cargo != source.cargo
-		OR target.idSucursal != source.idSucursal
-		OR target.turno != source.turno
-		OR target.cuil != source.cuil;
+	UPDATE target  
+	SET  
+		target.nombre = ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.nombre),  
+		target.apellido = ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.apellido),  
+		target.direccion = ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.direccion),  
+		target.emailPersonal = ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.emailPersonal),  
+		target.emailEmpresa = ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.emailEmpresa),  
+		target.cargo = ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.cargo),  
+		target.idSucursal = source.idSucursal,  
+		target.turno = source.turno,  
+		target.cuil = ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.cuil),  
+		target.cuilHash = HASHBYTES('SHA2_256', source.cuil)  
+	FROM dbEmpleado.Empleado AS target  
+	JOIN #DatosEmpleados AS source  
+		ON target.legajoEmpleado = source.legajo  
+	WHERE   
+		DECRYPTBYKEY(target.nombre) != source.nombre  
+		OR DECRYPTBYKEY(target.apellido) != source.apellido  
+		OR DECRYPTBYKEY(target.direccion) != source.direccion  
+		OR DECRYPTBYKEY(target.emailPersonal) != source.emailPersonal  
+		OR DECRYPTBYKEY(target.emailEmpresa) != source.emailEmpresa  
+		OR DECRYPTBYKEY(target.cargo) != source.cargo  
+		OR target.idSucursal != source.idSucursal  
+		OR target.turno != source.turno  
+		OR DECRYPTBYKEY(target.cuil) != source.cuil;
 
 	-- Insertar nuevos empleados que no existen en la tabla
-	INSERT INTO dbEmpleado.Empleado (legajoEmpleado, nombre, apellido, direccion, emailPersonal, emailEmpresa, cargo, idSucursal, turno, cuil, fechaAlta)
-	SELECT source.legajo, source.nombre, source.apellido, source.direccion, source.emailPersonal, source.emailEmpresa, source.cargo, source.idSucursal, source.turno, source.cuil, GETDATE()
-	FROM #DatosEmpleados AS source
-	WHERE NOT EXISTS (
-		SELECT 1
-		FROM dbEmpleado.Empleado AS target
-		WHERE target.legajoEmpleado = source.legajo
-	);
+	INSERT INTO dbEmpleado.Empleado (  
+		legajoEmpleado,  
+		cuil,  
+		cuilHash,  
+		nombre,  
+		apellido,  
+		direccion,  
+		emailPersonal,  
+		emailEmpresa,  
+		turno,  
+		cargo,  
+		fechaAlta,  
+		fechaBaja,  
+		idSucursal  
+	)  
+	SELECT  
+		source.legajo,  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.cuil),  
+		HASHBYTES('SHA2_256', source.cuil),  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.nombre),  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.apellido),  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.direccion),  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.emailPersonal),  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.emailEmpresa),  
+		source.turno,  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), source.cargo),  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), CONVERT(VARCHAR(10), source.fechaAlta, 120)),  
+		ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), CAST(NULL AS VARBINARY(MAX))),  
+		source.idSucursal  
+	FROM #DatosEmpleados AS source  
+	WHERE NOT EXISTS (  
+		SELECT 1 FROM dbEmpleado.Empleado AS target  
+		WHERE target.legajoEmpleado = source.legajo  
+	);  
 
-	-- Mostrar resultado de la operacion
-	-- SELECT * FROM dbEmpleado.Empleado
+	CLOSE SYMMETRIC KEY EmpleadoLlave;  
 
 	DROP TABLE #DatosEmpleados;
   

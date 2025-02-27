@@ -17,6 +17,92 @@ GO
 ---------------------------------------------------------------------
 
 
+CREATE OR ALTER PROCEDURE dbEmpleado.InsertarEmpleadoEncriptado
+    @legajoEmpleado INT,
+    @cuil CHAR(13),
+    @nombre VARCHAR(30),
+    @apellido VARCHAR(30),
+    @direccion VARCHAR(100),
+    @emailPersonal VARCHAR(70),
+    @emailEmpresa VARCHAR(70),
+    @turno VARCHAR(17),
+    @cargo VARCHAR(30),
+    @fechaAlta DATE,
+    @fechaBaja DATE,
+    @idSucursal INT
+AS
+BEGIN
+    
+    -- Abrir la llave simétrica
+    OPEN SYMMETRIC KEY EmpleadoLlave
+        DECRYPTION BY CERTIFICATE CertificadoEmpleado;
+
+    INSERT INTO dbEmpleado.Empleado (
+        legajoEmpleado, 
+        cuil,  -- Almacena el CUIL encriptado
+        cuilHash,        -- Almacena el hash del CUIL
+        nombre, 
+        apellido, 
+        direccion, 
+        emailPersonal, 
+        emailEmpresa, 
+        turno, 
+        cargo, 
+        fechaAlta, 
+        fechaBaja, 
+        idSucursal
+    )
+    VALUES (
+        @legajoEmpleado, 
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @cuil),   -- Cifrado del CUIL
+        HASHBYTES('SHA2_256', @cuil),                      -- Hash para garantizar unicidad
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @nombre),
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @apellido),
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @direccion),
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @emailPersonal),
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @emailEmpresa),
+        @turno,
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @cargo),
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), CONVERT(VARCHAR(10), @fechaAlta, 120)),  
+        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), 
+            CASE WHEN @fechaBaja IS NOT NULL 
+                 THEN CONVERT(VARCHAR(10), @fechaBaja, 120) 
+                 ELSE NULL END),
+        @idSucursal
+    );
+
+    -- Cerrar la llave simétrica
+    CLOSE SYMMETRIC KEY EmpleadoLlave;
+END;
+GO
+
+
+CREATE OR ALTER PROCEDURE dbEmpleado.ObtenerEmpleadosDesencriptados
+AS
+BEGIN
+    OPEN SYMMETRIC KEY EmpleadoLlave
+        DECRYPTION BY CERTIFICATE CertificadoEmpleado;
+ 
+    SELECT
+		legajoEmpleado,
+		CONVERT(CHAR(13), DECRYPTBYKEY(cuil)) AS cuil,  
+		CONVERT(VARCHAR(30), DECRYPTBYKEY(nombre)) AS nombre,
+		CONVERT(VARCHAR(30), DECRYPTBYKEY(apellido)) AS apellido,
+		CONVERT(VARCHAR(100), DECRYPTBYKEY(direccion)) AS direccion,
+		CONVERT(VARCHAR(70), DECRYPTBYKEY(emailPersonal)) AS emailPersonal,
+		CONVERT(VARCHAR(70), DECRYPTBYKEY(emailEmpresa)) AS emailEmpresa,
+		turno,
+		CONVERT(VARCHAR(30), DECRYPTBYKEY(cargo)) AS cargo,
+		CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaAlta))) AS fechaAlta,
+		CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaBaja))) AS fechaBaja,
+        idSucursal
+    FROM dbEmpleado.Empleado;
+ 
+    CLOSE SYMMETRIC KEY EmpleadoLlave;
+END;
+GO
+
+
 
 
 
@@ -176,3 +262,4 @@ END
 	Empleado		usuario_empleado			contraseñaEmpleado
 
 */
+

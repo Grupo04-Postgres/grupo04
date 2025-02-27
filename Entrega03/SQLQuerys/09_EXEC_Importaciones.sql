@@ -46,10 +46,6 @@ SET @RutaBase =
 SET @RutaEnRepositorio = 'grupo04/TP_integrador_Archivos/';
 SET @RutaArchivosAbsoluta = @RutaBase + @RutaEnRepositorio;
 
---SELECT @RutaArchivosAbsoluta AS RutaIngresada;
-
-
-
 
 -- Ejecutar el procedimiento ImportarSucursales con la ruta del archivo
 EXEC dbSucursal.ImportarSucursales @RutaArchivosAbsoluta;
@@ -61,7 +57,7 @@ EXEC dbVenta.ImportarMetodosDePago @RutaArchivosAbsoluta;
 
 -- Ejecutar el procedimiento ImportarEmpleados con la ruta del archivo
 EXEC dbEmpleado.ImportarEmpleados @RutaArchivosAbsoluta;
-
+EXEC dbEmpleado.ImportarEmpleados 'C:/Temp/Archivos/'
 
 -- Ejecutar el procedimiento ImportarProductos con la ruta del archivo
 EXEC dbProducto.ImportarClasificacionProductos @RutaArchivosAbsoluta;

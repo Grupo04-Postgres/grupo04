@@ -43,6 +43,8 @@ Notas:
     - La API utilizada es https://api.genderize.io?name={nombre}.
     - Si la API no responde, se asume '23' por defecto.
 */
+
+
 CREATE OR ALTER FUNCTION dbSistema.ObtenerPrefijoCUIL(@nombre VARCHAR(30))
 RETURNS CHAR(10)
 AS

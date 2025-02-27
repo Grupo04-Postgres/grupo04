@@ -126,17 +126,20 @@ GO
 
 CREATE TABLE dbEmpleado.Empleado (
 	legajoEmpleado INT PRIMARY KEY, --IDENTITY BORRADO
-	cuil CHAR(13) NOT NULL UNIQUE,
+	cuil CHAR(13) NOT NULL,
 	nombre VARCHAR(30) NOT NULL,
 	apellido VARCHAR(30) NOT NULL,
 	direccion VARCHAR(100) NOT NULL,
 	emailPersonal varchar(70) NOT NULL, --VARCHAR AMPLIADO
 	emailEmpresa varchar(70) NOT NULL, --VARCHAR AMPLIADO
-	turno varchar(16) NOT NULL CHECK(turno IN ('TM','TT','Jornada completa')),  -- Mañana-Tarde-JornadaCompleta
+	turno varchar(16) NOT NULL , 
 	cargo varchar(30) NOT NULL,
 	fechaAlta DATE NOT NULL,
 	fechaBaja DATE,
-	idSucursal INT NOT NULL REFERENCES dbSucursal.Sucursal(idSucursal)
+	idSucursal INT NOT NULL REFERENCES dbSucursal.Sucursal(idSucursal),
+
+    CONSTRAINT UNIQUE_Empleado_Cuil UNIQUE (cuil),
+    CONSTRAINT CHECK_Empleado_Turno CHECK (turno IN ('TM', 'TT', 'Jornada completa'))
 )
 GO
 
@@ -194,4 +197,83 @@ CREATE TABLE dbVenta.NotaDeCredito(
 	idProductoCambio INT REFERENCES dbProducto.Producto(idProducto),
 	monto DECIMAL(10,2),
 )
+GO
+
+
+---------------------------------------------------------------------
+-- Entrega 05
+
+---------------------------------------------------------------------
+-- Crear una llave maestra, certificado y llave simetrica para encriptar la tabla dbEmpleado.Empleado
+
+
+
+
+
+IF NOT EXISTS (SELECT * FROM sys.key_encryptions)
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'boca123';
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.certificates WHERE name = 'CertificadoEmpleado')
+CREATE CERTIFICATE CertificadoEmpleado
+    WITH SUBJECT = 'Certificado para encriptar datos de Empleados';
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE name = 'EmpleadoLlave')
+CREATE SYMMETRIC KEY EmpleadoLlave
+    WITH ALGORITHM = AES_256
+    ENCRYPTION BY CERTIFICATE CertificadoEmpleado;
+GO
+
+
+---------------------------------------------------------------------
+-- Alterar la tabla dbEmpleado.Empleado para que permita encriptar sus datos con las restricciones adecuadas.
+
+ALTER TABLE dbEmpleado.Empleado 
+ADD 
+    nombreEncriptado VARBINARY(MAX),
+    apellidoEncriptado VARBINARY(MAX),
+    direccionEncriptada VARBINARY(MAX),
+    emailPersonalEncriptado VARBINARY(MAX),
+    emailEmpresaEncriptado VARBINARY(MAX),
+    turnoEncriptado VARBINARY(MAX),
+    cargoEncriptado VARBINARY(MAX),
+    fechaAltaEncriptada VARBINARY(MAX),
+    fechaBajaEncriptada VARBINARY(MAX);
+GO
+
+ALTER TABLE dbEmpleado.Empleado 
+ADD 
+    cuilHash VARBINARY(32), -- No puedo usar la restricción: UNIQUE usando ENCRYPTBYKEY(), ya que cada vez que 
+                            -- encripte los datos, me devolverá un valor distinto, aunque el texto original sea el mismo.
+
+    cuilEncriptado VARBINARY(MAX)  -- Debe tener la restricción UNIQUE (agregada al final)
+GO
+
+ALTER TABLE dbEmpleado.Empleado DROP CONSTRAINT UNIQUE_Empleado_Cuil;
+ALTER TABLE dbEmpleado.Empleado DROP CONSTRAINT CHECK_Empleado_Turno;
+GO
+
+ALTER TABLE dbEmpleado.Empleado 
+DROP COLUMN cuil, nombre, apellido, direccion, emailPersonal, emailEmpresa, turno, cargo, fechaAlta, fechaBaja;
+GO
+
+EXEC sp_rename 'dbEmpleado.Empleado.cuilEncriptado', 'cuil', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.nombreEncriptado', 'nombre', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.apellidoEncriptado', 'apellido', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.direccionEncriptada', 'direccion', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.emailPersonalEncriptado', 'emailPersonal', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.emailEmpresaEncriptado', 'emailEmpresa', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.turnoEncriptado', 'turno', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.cargoEncriptado', 'cargo', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.fechaAltaEncriptada', 'fechaAlta', 'COLUMN';
+EXEC sp_rename 'dbEmpleado.Empleado.fechaBajaEncriptada', 'fechaBaja', 'COLUMN';
+GO
+
+ALTER TABLE dbEmpleado.Empleado  
+ADD CONSTRAINT CHECK_Empleado_Turno CHECK(turno IN ('TM', 'TT', 'Jornada completa'));
+GO
+
+ALTER TABLE dbEmpleado.Empleado 
+ADD CONSTRAINT UNIQUE_Empleado_Cuil UNIQUE (cuilHash);
 GO
