@@ -1,20 +1,19 @@
 ---------------------------------------------------------------------
--- Fecha de entrega
+-- Fecha de entrega: 28/02/2025
 -- Materia: Base de Datos Aplicada
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
-   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Genere store procedures para manejar los borrados logicos
 
 -- Borrados logicos
--- Los borrados logicos se realizan actualizando el campo de estado en las tablas que permiten este tipo de operaci贸n,
+-- Los borrados logicos se realizan actualizando el campo de estado en las tablas que permiten este tipo de operaci髇,
 -- manteniendo el registro para futuros informes. 
--- Adem谩s, cuando el borrado afecta a varias tablas, se aplica un borrado l贸gico en cascada, 
+-- Adem醩, cuando el borrado afecta a varias tablas, se aplica un borrado l骻ico en cascada, 
 -- utilizando transacciones para asegurar que todos los cambios se realicen de manera coherente y controlada. 
 -- En algunos SPs, se reutilizan los que ya existen para facilitar el proceso.
 
@@ -63,11 +62,11 @@ BEGIN
     BEGIN TRY
         -- Inactivar los productos asociados
 
-		-- Declaramos un cursor para seleccionar los idProducto que pertenecen a la categor铆a de producto de la l铆nea de producto especificada
+		-- Declaramos un cursor para seleccionar los idProducto que pertenecen a la categor韆 de producto de la l韓ea de producto especificada
         DECLARE curProd CURSOR FOR 
         SELECT idProducto FROM dbProducto.Producto WHERE idCategoriaProducto = @idCategoriaProducto;
 
-		-- Declaramos la variable para almacenar cada idProducto durante la iteraci贸n del cursor
+		-- Declaramos la variable para almacenar cada idProducto durante la iteraci髇 del cursor
         DECLARE @idProducto INT;
 
 		-- Abrimos el cursor para comenzar a recorrer los registros
@@ -79,20 +78,20 @@ BEGIN
 		-- Mientras haya productos para procesar
         WHILE @@FETCH_STATUS = 0
         BEGIN
-			-- Ejecutamos el procedimiento de borrado l贸gico para cada producto, pasando el idProducto
+			-- Ejecutamos el procedimiento de borrado l骻ico para cada producto, pasando el idProducto
             EXEC dbProducto.BorrarProducto @idProducto;
 
 			-- Obtenemos el siguiente idProducto
             FETCH NEXT FROM curProd INTO @idProducto;
         END
 
-		-- Cerramos el cursor despu茅s de completar la iteraci贸n
+		-- Cerramos el cursor despu閟 de completar la iteraci髇
         CLOSE curProd;
 
 		-- Liberamos los recursos asociados al cursor
         DEALLOCATE curProd;
 
-        -- Inactivar la l铆nea de producto
+        -- Inactivar la l韓ea de producto
         UPDATE dbProducto.CategoriaProducto
         SET estado = 0
         WHERE idCategoriaProducto = @idCategoriaProducto;
@@ -129,7 +128,7 @@ BEGIN
 
 	-- Iniciar transaccion, ya que se van a modificar varias tablas
     BEGIN TRY
-        -- Inactivar las categorias de producto asociadas (Esto ya inactiva productos tambi茅n)
+        -- Inactivar las categorias de producto asociadas (Esto ya inactiva productos tambi閚)
         DECLARE curCat CURSOR FOR 
         SELECT idCategoriaProducto FROM dbProducto.CategoriaProducto WHERE idLineaProducto = @idLineaProducto;
 

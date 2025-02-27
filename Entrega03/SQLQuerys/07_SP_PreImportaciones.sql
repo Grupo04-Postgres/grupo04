@@ -1,12 +1,11 @@
 ﻿---------------------------------------------------------------------
--- Fecha de entrega
+-- Fecha de entrega: 28/02/2025
 -- Materia: Base de Datos Aplicada
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
-   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Pre importaciones
@@ -44,8 +43,6 @@ Notas:
     - La API utilizada es https://api.genderize.io?name={nombre}.
     - Si la API no responde, se asume '23' por defecto.
 */
-
-
 CREATE OR ALTER FUNCTION dbSistema.ObtenerPrefijoCUIL(@nombre VARCHAR(30))
 RETURNS CHAR(10)
 AS
@@ -191,6 +188,25 @@ AS
 BEGIN
 
     -- Verificar y eliminar solo si la tabla tiene datos
+	IF EXISTS (SELECT 1 FROM dbVenta.NotaDeCredito)
+    BEGIN
+        DELETE FROM dbVenta.NotaDeCredito;
+		DBCC CHECKIDENT ('dbVenta.NotaDeCredito', RESEED, 0);
+    END
+
+	IF EXISTS (SELECT 1 FROM dbVenta.DetalleVenta)
+    BEGIN
+        DELETE FROM dbVenta.DetalleVenta;
+		DBCC CHECKIDENT ('dbVenta.DetalleVenta', RESEED, 0);
+    END
+
+	
+    IF EXISTS (SELECT 1 FROM dbVenta.Venta)
+    BEGIN
+        DELETE FROM dbVenta.Venta;
+        DBCC CHECKIDENT ('dbVenta.Venta', RESEED, 0);
+    END
+
     IF EXISTS (SELECT 1 FROM dbProducto.Producto)
     BEGIN
         DELETE FROM dbProducto.Producto;
@@ -226,11 +242,6 @@ BEGIN
         DBCC CHECKIDENT ('dbSucursal.Sucursal', RESEED, 0);
     END
 
-    IF EXISTS (SELECT 1 FROM dbVenta.DetalleVenta)
-    BEGIN
-        DELETE FROM dbVenta.DetalleVenta;
-    END
-
     IF EXISTS (SELECT 1 FROM dbVenta.Factura)
     BEGIN
         DELETE FROM dbVenta.Factura;
@@ -241,13 +252,6 @@ BEGIN
         DELETE FROM dbVenta.MetodoPago;
         DBCC CHECKIDENT ('dbVenta.MetodoPago', RESEED, 0);
     END
-
-    IF EXISTS (SELECT 1 FROM dbVenta.Venta)
-    BEGIN
-        DELETE FROM dbVenta.Venta;
-        DBCC CHECKIDENT ('dbVenta.Venta', RESEED, 0);
-    END
-
 
 END;
 GO

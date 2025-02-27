@@ -1,12 +1,11 @@
 ﻿---------------------------------------------------------------------
--- Fecha de entrega
+-- Fecha de entrega: 28/02/2025
 -- Materia: Base de Datos Aplicada
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
-   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Cree la base de datos, entidades y relaciones. Incluya restricciones y claves.
@@ -140,7 +139,6 @@ CREATE TABLE dbEmpleado.Empleado (
 	idSucursal INT NOT NULL REFERENCES dbSucursal.Sucursal(idSucursal),
 
     CONSTRAINT UNIQUE_Empleado_Cuil UNIQUE (cuil),
-    CONSTRAINT CHECK_Empleado_Turno CHECK (turno IN ('TM', 'TT', 'Jornada completa'))
 )
 GO
 
@@ -183,6 +181,7 @@ CREATE TABLE dbVenta.DetalleVenta (
 )
 GO
 
+--------------------Requisitos de seguridad--------------------------
 
 ---------------------------------------------------------------------
 -- Crear tabla nota de credito
@@ -202,13 +201,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Entrega 05
-
----------------------------------------------------------------------
 -- Crear una llave maestra, certificado y llave simetrica para encriptar la tabla dbEmpleado.Empleado
-
-
-
 
 
 IF NOT EXISTS (SELECT * FROM sys.key_encryptions)
@@ -252,7 +245,6 @@ ADD
 GO
 
 ALTER TABLE dbEmpleado.Empleado DROP CONSTRAINT UNIQUE_Empleado_Cuil;
-ALTER TABLE dbEmpleado.Empleado DROP CONSTRAINT CHECK_Empleado_Turno;
 GO
 
 ALTER TABLE dbEmpleado.Empleado 
@@ -271,10 +263,57 @@ EXEC sp_rename 'dbEmpleado.Empleado.fechaAltaEncriptada', 'fechaAlta', 'COLUMN';
 EXEC sp_rename 'dbEmpleado.Empleado.fechaBajaEncriptada', 'fechaBaja', 'COLUMN';
 GO
 
-ALTER TABLE dbEmpleado.Empleado  
-ADD CONSTRAINT CHECK_Empleado_Turno CHECK(turno IN ('TM', 'TT', 'Jornada completa'));
-GO
-
 ALTER TABLE dbEmpleado.Empleado 
 ADD CONSTRAINT UNIQUE_Empleado_Cuil UNIQUE (cuilHash);
+GO
+
+
+---------------------------------------------------------------------
+-- Obtener empleados encriptados
+
+CREATE OR ALTER PROCEDURE dbEmpleado.ObtenerEmpleado
+	@legajoEmpleado INT = NULL
+AS
+BEGIN
+    OPEN SYMMETRIC KEY EmpleadoLlave
+        DECRYPTION BY CERTIFICATE CertificadoEmpleado;
+ 
+	IF @legajoEmpleado IS NULL
+	BEGIN
+		SELECT
+			legajoEmpleado,
+			CONVERT(CHAR(13), DECRYPTBYKEY(cuil)) AS cuil,  
+			CONVERT(VARCHAR(30), DECRYPTBYKEY(nombre)) AS nombre,
+			CONVERT(VARCHAR(30), DECRYPTBYKEY(apellido)) AS apellido,
+			CONVERT(VARCHAR(100), DECRYPTBYKEY(direccion)) AS direccion,
+			CONVERT(VARCHAR(70), DECRYPTBYKEY(emailPersonal)) AS emailPersonal,
+			CONVERT(VARCHAR(70), DECRYPTBYKEY(emailEmpresa)) AS emailEmpresa,
+			CONVERT(VARCHAR(70), DECRYPTBYKEY(turno)) AS turno,
+			CONVERT(VARCHAR(30), DECRYPTBYKEY(cargo)) AS cargo,
+			CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaAlta))) AS fechaAlta,
+			CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaBaja))) AS fechaBaja,
+			idSucursal
+		FROM dbEmpleado.Empleado
+	END
+	ELSE
+	BEGIN
+		SELECT
+			legajoEmpleado,
+			CONVERT(CHAR(13), DECRYPTBYKEY(cuil)) AS cuil,  
+			CONVERT(VARCHAR(30), DECRYPTBYKEY(nombre)) AS nombre,
+			CONVERT(VARCHAR(30), DECRYPTBYKEY(apellido)) AS apellido,
+			CONVERT(VARCHAR(100), DECRYPTBYKEY(direccion)) AS direccion,
+			CONVERT(VARCHAR(70), DECRYPTBYKEY(emailPersonal)) AS emailPersonal,
+			CONVERT(VARCHAR(70), DECRYPTBYKEY(emailEmpresa)) AS emailEmpresa,
+			CONVERT(VARCHAR(70), DECRYPTBYKEY(turno)) AS turno,
+			CONVERT(VARCHAR(30), DECRYPTBYKEY(cargo)) AS cargo,
+			CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaAlta))) AS fechaAlta,
+			CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaBaja))) AS fechaBaja,
+			idSucursal
+		FROM dbEmpleado.Empleado
+		WHERE legajoEmpleado = @legajoEmpleado
+	END
+ 
+    CLOSE SYMMETRIC KEY EmpleadoLlave;
+END;
 GO

@@ -1,12 +1,11 @@
 ---------------------------------------------------------------------
--- Fecha de entrega
+-- Fecha de entrega: 28/02/2025
 -- Materia: Base de Datos Aplicada
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
-   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Generar nota de credito para la devolucion de un producto
@@ -17,96 +16,6 @@ GO
 
 ---------------------------------------------------------------------
 
-
-CREATE OR ALTER PROCEDURE dbEmpleado.InsertarEmpleadoEncriptado
-    @legajoEmpleado INT,
-    @cuil CHAR(13),
-    @nombre VARCHAR(30),
-    @apellido VARCHAR(30),
-    @direccion VARCHAR(100),
-    @emailPersonal VARCHAR(70),
-    @emailEmpresa VARCHAR(70),
-    @turno VARCHAR(17),
-    @cargo VARCHAR(30),
-    @fechaAlta DATE,
-    @fechaBaja DATE,
-    @idSucursal INT
-AS
-BEGIN
-    
-    -- Abrir la llave sim√©trica
-    OPEN SYMMETRIC KEY EmpleadoLlave
-        DECRYPTION BY CERTIFICATE CertificadoEmpleado;
-
-    INSERT INTO dbEmpleado.Empleado (
-        legajoEmpleado, 
-        cuil,  -- Almacena el CUIL encriptado
-        cuilHash,        -- Almacena el hash del CUIL
-        nombre, 
-        apellido, 
-        direccion, 
-        emailPersonal, 
-        emailEmpresa, 
-        turno, 
-        cargo, 
-        fechaAlta, 
-        fechaBaja, 
-        idSucursal
-    )
-    VALUES (
-        @legajoEmpleado, 
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @cuil),   -- Cifrado del CUIL
-        HASHBYTES('SHA2_256', @cuil),                      -- Hash para garantizar unicidad
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @nombre),
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @apellido),
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @direccion),
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @emailPersonal),
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @emailEmpresa),
-        @turno,
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), @cargo),
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), CONVERT(VARCHAR(10), @fechaAlta, 120)),  
-        ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), 
-            CASE WHEN @fechaBaja IS NOT NULL 
-                 THEN CONVERT(VARCHAR(10), @fechaBaja, 120) 
-                 ELSE NULL END),
-        @idSucursal
-    );
-
-    -- Cerrar la llave sim√©trica
-    CLOSE SYMMETRIC KEY EmpleadoLlave;
-END;
-GO
-
-
-CREATE OR ALTER PROCEDURE dbEmpleado.ObtenerEmpleadosDesencriptados
-AS
-BEGIN
-    OPEN SYMMETRIC KEY EmpleadoLlave
-        DECRYPTION BY CERTIFICATE CertificadoEmpleado;
- 
-    SELECT
-		legajoEmpleado,
-		CONVERT(CHAR(13), DECRYPTBYKEY(cuil)) AS cuil,  
-		CONVERT(VARCHAR(30), DECRYPTBYKEY(nombre)) AS nombre,
-		CONVERT(VARCHAR(30), DECRYPTBYKEY(apellido)) AS apellido,
-		CONVERT(VARCHAR(100), DECRYPTBYKEY(direccion)) AS direccion,
-		CONVERT(VARCHAR(70), DECRYPTBYKEY(emailPersonal)) AS emailPersonal,
-		CONVERT(VARCHAR(70), DECRYPTBYKEY(emailEmpresa)) AS emailEmpresa,
-		turno,
-		CONVERT(VARCHAR(30), DECRYPTBYKEY(cargo)) AS cargo,
-		CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaAlta))) AS fechaAlta,
-		CONVERT(DATE, CONVERT(VARCHAR(10), DECRYPTBYKEY(fechaBaja))) AS fechaBaja,
-        idSucursal
-    FROM dbEmpleado.Empleado;
- 
-    CLOSE SYMMETRIC KEY EmpleadoLlave;
-END;
-GO
-
-
-
-
-
 CREATE OR ALTER PROCEDURE dbVenta.GenerarNotaDeCredito
 	@idDetalleVenta INT,
 	@motivo VARCHAR(150),
@@ -115,7 +24,7 @@ AS
 BEGIN
 	IF IS_MEMBER('Supervisor') = 0
     BEGIN
-		RAISERROR ('No tiene permisos para generar una nota de cr√©dito.', 16, 1);
+		RAISERROR ('No tiene permisos para generar una nota de crÈdito.', 16, 1);
 		RETURN;
     END
 
@@ -134,11 +43,11 @@ BEGIN
 		WHERE dv.idDetalleVenta = @idDetalleVenta;
 
 		IF @estadoFactura <> 'P'
-			SET @error = @error + 'No se puede generar una nota de cr√©dito porque la factura no est√° pagada.'
+			SET @error = @error + 'No se puede generar una nota de crÈdito porque la factura no est· pagada.'
 	END
 
 	IF LTRIM(RTRIM(@motivo)) = ''
-        SET @error = @error + 'El motivo no puede estar vac√≠o. ';
+        SET @error = @error + 'El motivo no puede estar vacÌo. ';
 
 	
 	-- Informar errores si los hubo 
@@ -152,14 +61,14 @@ BEGIN
 		SELECT @cantidadVendida = cantidad, @precioUnitario = precioUnitarioAlMomentoDeLaVenta, @idProducto = idProducto
 		FROM dbVenta.DetalleVenta WHERE idDetalleVenta = @idDetalleVenta;
 
-		-- Contar cu√°ntas notas de cr√©dito ya se generaron para ese detalle
+		-- Contar cu·ntas notas de crÈdito ya se generaron para ese detalle
 		DECLARE @cantidadDevuelta INT;
 		SELECT @cantidadDevuelta = COUNT(*) FROM dbVenta.NotaDeCredito WHERE idDetalleVenta = @idDetalleVenta;
 
-		-- Verificar que no se devuelvan m√°s productos de los vendidos
+		-- Verificar que no se devuelvan m·s productos de los vendidos
 		IF @cantidadDevuelta >= @cantidadVendida
 		BEGIN
-			RAISERROR ('No se pueden generar m√°s notas de cr√©dito de las unidades vendidas.', 16, 1);
+			RAISERROR ('No se pueden generar m·s notas de crÈdito de las unidades vendidas.', 16, 1);
 			RETURN;
 		END
 
@@ -181,86 +90,69 @@ END
 GO
 
 
--- Crear roles
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'Supervisor' AND type = 'R')
+CREATE OR ALTER PROCEDURE dbSistema.CrearRoles
+AS
 BEGIN
-    CREATE ROLE Supervisor;
-END
+	-- Crear roles
+	IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'Supervisor' AND type = 'R')
+	BEGIN
+		CREATE ROLE Supervisor;
+	END
 
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'Empleado' AND type = 'R')
-BEGIN
-    CREATE ROLE Empleado;
-END
+	IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'Empleado' AND type = 'R')
+	BEGIN
+		CREATE ROLE Empleado;
+	END
 
--- Crear login
-IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_supervisor')
-BEGIN
-    CREATE LOGIN usuario_supervisor WITH PASSWORD = 'contrase√±aSupervisor';
-END
+	-- Crear login
+	IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_supervisor')
+	BEGIN
+		CREATE LOGIN usuario_supervisor WITH PASSWORD = 'contraseÒaSupervisor';
+	END
 
-IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_empleado')
-BEGIN
-    CREATE LOGIN usuario_empleado WITH PASSWORD = 'contrase√±aEmpleado';
-END
+	IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_empleado')
+	BEGIN
+		CREATE LOGIN usuario_empleado WITH PASSWORD = 'contraseÒaEmpleado';
+	END
 
--- Crear usuarios
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'usuario_supervisor')
-BEGIN
-    CREATE USER usuario_supervisor FOR LOGIN usuario_supervisor;
-END
+	-- Crear usuarios
+	IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'usuario_supervisor')
+	BEGIN
+		CREATE USER usuario_supervisor FOR LOGIN usuario_supervisor;
+	END
 
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'usuario_empleado')
-BEGIN
-    CREATE USER usuario_empleado FOR LOGIN usuario_empleado;
-END
+	IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'usuario_empleado')
+	BEGIN
+		CREATE USER usuario_empleado FOR LOGIN usuario_empleado;
+	END
 
--- Asignar roles
-IF NOT EXISTS (SELECT * FROM sys.database_role_members WHERE role_principal_id = USER_ID('Supervisor') AND member_principal_id = USER_ID('usuario_supervisor'))
-BEGIN
-    ALTER ROLE Supervisor ADD MEMBER usuario_supervisor;
-END
+	-- Asignar roles
+	IF NOT EXISTS (SELECT * FROM sys.database_role_members WHERE role_principal_id = USER_ID('Supervisor') AND member_principal_id = USER_ID('usuario_supervisor'))
+	BEGIN
+		ALTER ROLE Supervisor ADD MEMBER usuario_supervisor;
+	END
 
-IF NOT EXISTS (SELECT * FROM sys.database_role_members WHERE role_principal_id = USER_ID('Empleado') AND member_principal_id = USER_ID('usuario_empleado'))
-BEGIN
-    ALTER ROLE Empleado ADD MEMBER usuario_empleado;
-END
+	IF NOT EXISTS (SELECT * FROM sys.database_role_members WHERE role_principal_id = USER_ID('Empleado') AND member_principal_id = USER_ID('usuario_empleado'))
+	BEGIN
+		ALTER ROLE Empleado ADD MEMBER usuario_empleado;
+	END
 
--- Asignar permisos
-IF NOT EXISTS (SELECT * FROM sys.database_permissions 
-               WHERE grantee_principal_id = USER_ID('Supervisor') 
-               AND major_id = OBJECT_ID('dbVenta.NotaDeCredito') 
-               AND permission_name = 'INSERT')
-BEGIN
-    GRANT INSERT ON dbVenta.NotaDeCredito TO Supervisor;
-END
+	-- Asignar permisos
+	IF NOT EXISTS (SELECT * FROM sys.database_permissions 
+				   WHERE grantee_principal_id = USER_ID('Supervisor') 
+				   AND major_id = OBJECT_ID('dbVenta.NotaDeCredito') 
+				   AND permission_name = 'INSERT')
+	BEGIN
+		GRANT INSERT ON dbVenta.NotaDeCredito TO Supervisor;
+	END
 
-IF NOT EXISTS (SELECT * FROM sys.database_permissions 
-               WHERE grantee_principal_id = USER_ID('Empleado') 
-               AND major_id = OBJECT_ID('dbVenta.NotaDeCredito') 
-               AND permission_name = 'INSERT')
-BEGIN
-    DENY INSERT ON dbVenta.NotaDeCredito TO Empleado;
-END
+	IF NOT EXISTS (SELECT * FROM sys.database_permissions 
+				   WHERE grantee_principal_id = USER_ID('Empleado') 
+				   AND major_id = OBJECT_ID('dbVenta.NotaDeCredito') 
+				   AND permission_name = 'INSERT')
+	BEGIN
+		DENY INSERT ON dbVenta.NotaDeCredito TO Empleado;
+	END
+END;
 
-
---Para conectarse como usuario_supervisor o usuario_empleado se deben seguir estos pasos:
-
-/*
-	1. Acceder a las propiedades del Servidor. 
-		a. Conectase al Servidor y seleccionar Properties del Servidor, en Object Explorer.
-		b. Ir a Security
-		c. Seleccionar SQL Server and Windows Authentication Mode
-	2. Cuando nos conectamos a un Servidor debemos:
-		a. Especificar la base de datos a la que me voy a conectar. 
-		b. En la pesta√±a Connection Properties -> Connect to Database: Com1353G04
-		c. Una vez hecho esto, debemos ir a Additional Connection Parameters -> TrustServerCertificate=True
-	3. Ya puede conectarse con el usuario y contrase√±a correctos.
-		a. Podra conectase usando usuario_supervisor o usuario_empleado
-		b. Se debe seleccionar el metodo de autenticacion SQL Server Authentication e ingresar correctamente el usuario y contrase√±a.
-
-	Usuario			User						Password
-	Supervisor		usuario_supervisor			contrase√±aSupervisor
-	Empleado		usuario_empleado			contrase√±aEmpleado
-
-*/
-
+EXEC dbSistema.CrearRoles
