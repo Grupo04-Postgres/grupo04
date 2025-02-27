@@ -6,6 +6,7 @@
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
+   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Generar nota de credito para la devolucion de un producto
@@ -33,7 +34,7 @@ CREATE OR ALTER PROCEDURE dbEmpleado.InsertarEmpleadoEncriptado
 AS
 BEGIN
     
-    -- Abrir la llave simétrica
+    -- Abrir la llave simÃ©trica
     OPEN SYMMETRIC KEY EmpleadoLlave
         DECRYPTION BY CERTIFICATE CertificadoEmpleado;
 
@@ -71,7 +72,7 @@ BEGIN
         @idSucursal
     );
 
-    -- Cerrar la llave simétrica
+    -- Cerrar la llave simÃ©trica
     CLOSE SYMMETRIC KEY EmpleadoLlave;
 END;
 GO
@@ -114,7 +115,7 @@ AS
 BEGIN
 	IF IS_MEMBER('Supervisor') = 0
     BEGIN
-		RAISERROR ('No tiene permisos para generar una nota de crédito.', 16, 1);
+		RAISERROR ('No tiene permisos para generar una nota de crÃ©dito.', 16, 1);
 		RETURN;
     END
 
@@ -133,11 +134,11 @@ BEGIN
 		WHERE dv.idDetalleVenta = @idDetalleVenta;
 
 		IF @estadoFactura <> 'P'
-			SET @error = @error + 'No se puede generar una nota de crédito porque la factura no está pagada.'
+			SET @error = @error + 'No se puede generar una nota de crÃ©dito porque la factura no estÃ¡ pagada.'
 	END
 
 	IF LTRIM(RTRIM(@motivo)) = ''
-        SET @error = @error + 'El motivo no puede estar vacío. ';
+        SET @error = @error + 'El motivo no puede estar vacÃ­o. ';
 
 	
 	-- Informar errores si los hubo 
@@ -151,14 +152,14 @@ BEGIN
 		SELECT @cantidadVendida = cantidad, @precioUnitario = precioUnitarioAlMomentoDeLaVenta, @idProducto = idProducto
 		FROM dbVenta.DetalleVenta WHERE idDetalleVenta = @idDetalleVenta;
 
-		-- Contar cuántas notas de crédito ya se generaron para ese detalle
+		-- Contar cuÃ¡ntas notas de crÃ©dito ya se generaron para ese detalle
 		DECLARE @cantidadDevuelta INT;
 		SELECT @cantidadDevuelta = COUNT(*) FROM dbVenta.NotaDeCredito WHERE idDetalleVenta = @idDetalleVenta;
 
-		-- Verificar que no se devuelvan más productos de los vendidos
+		-- Verificar que no se devuelvan mÃ¡s productos de los vendidos
 		IF @cantidadDevuelta >= @cantidadVendida
 		BEGIN
-			RAISERROR ('No se pueden generar más notas de crédito de las unidades vendidas.', 16, 1);
+			RAISERROR ('No se pueden generar mÃ¡s notas de crÃ©dito de las unidades vendidas.', 16, 1);
 			RETURN;
 		END
 
@@ -194,12 +195,12 @@ END
 -- Crear login
 IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_supervisor')
 BEGIN
-    CREATE LOGIN usuario_supervisor WITH PASSWORD = 'contraseñaSupervisor';
+    CREATE LOGIN usuario_supervisor WITH PASSWORD = 'contraseÃ±aSupervisor';
 END
 
 IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_empleado')
 BEGIN
-    CREATE LOGIN usuario_empleado WITH PASSWORD = 'contraseñaEmpleado';
+    CREATE LOGIN usuario_empleado WITH PASSWORD = 'contraseÃ±aEmpleado';
 END
 
 -- Crear usuarios
@@ -251,15 +252,15 @@ END
 		c. Seleccionar SQL Server and Windows Authentication Mode
 	2. Cuando nos conectamos a un Servidor debemos:
 		a. Especificar la base de datos a la que me voy a conectar. 
-		b. En la pestaña Connection Properties -> Connect to Database: Com1353G04
+		b. En la pestaÃ±a Connection Properties -> Connect to Database: Com1353G04
 		c. Una vez hecho esto, debemos ir a Additional Connection Parameters -> TrustServerCertificate=True
-	3. Ya puede conectarse con el usuario y contraseña correctos.
+	3. Ya puede conectarse con el usuario y contraseÃ±a correctos.
 		a. Podra conectase usando usuario_supervisor o usuario_empleado
-		b. Se debe seleccionar el metodo de autenticacion SQL Server Authentication e ingresar correctamente el usuario y contraseña.
+		b. Se debe seleccionar el metodo de autenticacion SQL Server Authentication e ingresar correctamente el usuario y contraseÃ±a.
 
 	Usuario			User						Password
-	Supervisor		usuario_supervisor			contraseñaSupervisor
-	Empleado		usuario_empleado			contraseñaEmpleado
+	Supervisor		usuario_supervisor			contraseÃ±aSupervisor
+	Empleado		usuario_empleado			contraseÃ±aEmpleado
 
 */
 
