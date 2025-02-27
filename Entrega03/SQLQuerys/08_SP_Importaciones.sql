@@ -425,6 +425,7 @@ BEGIN
         date DATETIME
     );
 
+
     -- Realizar la carga del archivo CSV usando BULK INSERT
 	DECLARE @SQL VARCHAR(MAX);
         
@@ -440,9 +441,9 @@ BEGIN
             ''Ã³'', ''ó''), 
             ''Ãº'', ''ú''), 
             ''Ã±'', ''ñ''), 
-            ''Ã‘'', ''Ñ'') AS name,
-        CAST(price AS DECIMAL(10, 2)),  -- Aseguramos que el precio se almacene como decimal
-		CAST(reference_price AS DECIMAL(10, 2)),  -- Hacemos lo mismo con el precio de referencia
+            ''Ã‘'', ''Ñ'') ,
+        CAST(price / 100 AS DECIMAL(10,2)),
+		CAST(reference_price / 100 AS DECIMAL(10,2)),
 		reference_unit,
 		date
     FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
@@ -452,7 +453,6 @@ BEGIN
 
     -- Ejecutar la consulta OPENROWSET
     EXEC(@SQL);
-
 
 -- Actualizamos los productos existentes
 	UPDATE p
