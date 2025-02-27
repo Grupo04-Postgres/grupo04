@@ -6,6 +6,7 @@
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
+   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Generar reportes en xml
@@ -20,7 +21,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mensual: ingresando un mes y año determinado mostrar el total facturado por días de la semana, incluyendo sábado y domingo.
+-- Mensual: ingresando un mes y aÃ±o determinado mostrar el total facturado por dÃ­as de la semana, incluyendo sÃ¡bado y domingo.
 CREATE OR ALTER PROCEDURE dbReporte.TotalFacturadoPorDiaMensual
 	@mes INT, 
 	@anio INT
@@ -49,7 +50,7 @@ AS
 BEGIN
     -- CTE para obtener el total facturado por turno
     WITH VentasPorTurno AS (
-        SELECT E.turno AS Turno, MONTH(V.fecha) AS Mes, YEAR(V.fecha) AS Año, 
+        SELECT E.turno AS Turno, MONTH(V.fecha) AS Mes, YEAR(V.fecha) AS AÃ±o, 
 		SUM(DV.cantidad * DV.precioUnitarioAlMomentoDeLaVenta) AS TotalFacturado
         FROM dbVenta.Venta V
         INNER JOIN dbVenta.DetalleVenta DV ON V.idVenta = DV.idVenta
@@ -58,7 +59,7 @@ BEGIN
         GROUP BY E.turno, MONTH(V.fecha), YEAR(V.fecha)
     )
 
-    SELECT Año, Mes, Turno, TotalFacturado
+    SELECT AÃ±o, Mes, Turno, TotalFacturado
     FROM VentasPorTurno
 	FOR XML PATH('Venta'), ROOT('Reporte'), TYPE
 END;
@@ -116,7 +117,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mostrar los 5 productos más vendidos en un mes, por semana
+-- Mostrar los 5 productos mÃ¡s vendidos en un mes, por semana
 CREATE PROCEDURE dbReporte.ProductosMasVendidosPorSemana
     @mes INT,
     @anio INT
@@ -178,7 +179,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mostrar total acumulado de ventas (o sea también mostrar el detalle) para una fecha y sucursal particulares
+-- Mostrar total acumulado de ventas (o sea tambiÃ©n mostrar el detalle) para una fecha y sucursal particulares
 
 CREATE PROCEDURE dbReporte.TotalAcumuladoVentasPorSucursal
     @fecha DATE,
@@ -206,7 +207,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mensual: ingresando un mes y año determinado mostrar el vendedor de mayor monto facturado por sucursal.
+-- Mensual: ingresando un mes y aÃ±o determinado mostrar el vendedor de mayor monto facturado por sucursal.
 CREATE OR ALTER PROCEDURE dbReporte.VendedorMayorTotalFacturadoPorSucursal
 	@mes INT, 
 	@anio INT
