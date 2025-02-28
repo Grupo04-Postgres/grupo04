@@ -15,40 +15,42 @@ USE Com1353G04
 GO
 
 ---------------------------------------------------------------------
+-- SE DEBE EJECUTAR PRIMERO LAS PRE IMPORTACIONES
+
 --Seteo de ruta para importar archivo
 
---¡IMPORTANTE!: SE DEBE SETEAR EL DIRECTORIO DONDE SE GUARDA EL REPOSITORIO
+DECLARE @RutaInformacion VARCHAR(1024),
+@RutaVentas VARCHAR(1024),
+@DirectorioProductos VARCHAR(1024);
 
-DECLARE @RutaArchivosAbsoluta VARCHAR(1024);
-
---AGREGAR DIRECTORIO EN DONDE SE GUARDA SUS ARCHIVOS, EJEMPLO: 'C:/Temp, C:/Usuarios/javier/'
---IMPORTANTE QUE TERMINE CON '/'
+--AGREGAR DIRECTORIO DE LOS ARCHIVOS DE PRODUCTOS Y RUTA DE LOS OTROS ARCHIVOS
+-- EJEMPLO: 
+   -- 'C:/Usuarios/javier/TP_integrador_Archivos/Informacion_complementaria.xlsx'
+   -- 'C:/Usuarios/javier/TP_integrador_Archivos/Ventas_registradas.csv'
+   -- 'C:/Usuarios/javier/TP_integrador_Archivos/Productos/'
+-- IMPORTANTE QUE TERMINE CON '/'
 
 --|
 --|
 --|
 --↓
-SET @RutaArchivosAbsoluta = 'C:/Users/living/Desktop/grupo04-main/grupo04/TP_integrador_Archivos/';
+SET @RutaInformacion = 'C:/Users/living/Desktop/grupo04-main/grupo04/TP_integrador_Archivos/Informacion_complementaria.xlsx';
+SET @RutaVentas = 'C:/Users/living/Desktop/grupo04-main/grupo04/TP_integrador_Archivos/Ventas_registradas.csv';
+SET @DirectorioProductos = 'C:/Users/living/Desktop/grupo04-main/grupo04/TP_integrador_Archivos/Productos/';
 --↑
 --|
 --|
 --|
 
 --EN CASO DE QUE SE HAYA OLVIDADO EL '/' AL FINAL
-SET @RutaArchivosAbsoluta = 
+SET @DirectorioProductos = 
     CASE 
-        WHEN RIGHT(@RutaArchivosAbsoluta, 1) = '/' THEN @RutaArchivosAbsoluta
-        ELSE @RutaArchivosAbsoluta + '/' 
+        WHEN RIGHT(@DirectorioProductos, 1) = '/' THEN @DirectorioProductos
+        ELSE @DirectorioProductos + '/' 
     END;
 
-
 -- Importar archivos
-EXEC dbSucursal.ImportarSucursales @RutaArchivosAbsoluta;
-EXEC dbVenta.ImportarMetodosDePago @RutaArchivosAbsoluta;
-EXEC dbEmpleado.ImportarEmpleados @RutaArchivosAbsoluta;
-EXEC dbProducto.ImportarClasificacionProductos @RutaArchivosAbsoluta;
-EXEC dbProducto.ImportarProductos @RutaArchivosAbsoluta;
-EXEC dbVenta.ImportarVentas @RutaArchivosAbsoluta;
+EXEC dbSistema.ImportarArchivo @RutaInformacion, @RutaVentas, @DirectorioProductos;
 
 
 -- Mostrar resultados

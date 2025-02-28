@@ -1,12 +1,11 @@
 ---------------------------------------------------------------------
--- Fecha de entrega
+-- Fecha de entrega: 28/02/2025
 -- Materia: Base de Datos Aplicada
 -- Comision: 1353
 -- Numero de grupo: 04
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
-   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Generar reportes en xml
@@ -21,135 +20,144 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mensual: ingresando un mes y año determinado mostrar el total facturado por días de la semana, incluyendo sábado y domingo.
+-- Mensual: ingresando un mes y a�o determinado mostrar el total facturado por d�as de la semana, incluyendo s�bado y domingo.
 CREATE OR ALTER PROCEDURE dbReporte.TotalFacturadoPorDiaMensual
 	@mes INT, 
 	@anio INT
 AS
 BEGIN
-	WITH FacturasFiltradas AS (
-		SELECT DATENAME(WEEKDAY, fecha) AS Dia, SUM(total) AS Total
-		FROM dbVenta.Factura
-		WHERE YEAR(fecha) = @anio AND MONTH(fecha) = @mes
-		GROUP BY DATENAME(WEEKDAY, fecha)
-	)
-
-	SELECT Dia, Total
-	FROM FacturasFiltradas
-	FOR XML PATH('Facturacion'), ROOT('Reporte'), TYPE;
+	WITH FacturacionPorDia AS (
+        SELECT 
+            DATENAME(WEEKDAY, fecha) AS Dia,
+            DATEPART(WEEKDAY, fecha) AS DiaNumero,
+            SUM(total) AS TotalFacturado
+        FROM dbVenta.Factura
+        WHERE MONTH(fecha) = @mes AND YEAR(fecha) = @anio
+        GROUP BY DATENAME(WEEKDAY, fecha), DATEPART(WEEKDAY, fecha)
+    )
+    SELECT Dia, TotalFacturado
+    FROM FacturacionPorDia
+    ORDER BY DiaNumero
+	FOR XML PATH('Facturacion'), ROOT('ReporteFacturacionMensual'), TYPE;
 END;
 GO
 
 
 ---------------------------------------------------------------------
 -- Trimestral: mostrar el total facturado por turnos de trabajo por mes.
-CREATE PROCEDURE dbReporte.TotalFacturadoPorTurnoTrimestral
-    @fechaInicio DATE,
-    @fechaFin DATE
+CREATE OR ALTER PROCEDURE dbReporte.TotalFacturadoPorTurnoTrimestral
+    @trimestre INT,
+    @anio INT
 AS
 BEGIN
-    -- CTE para obtener el total facturado por turno
-    WITH VentasPorTurno AS (
-        SELECT E.turno AS Turno, MONTH(V.fecha) AS Mes, YEAR(V.fecha) AS Año, 
-		SUM(DV.cantidad * DV.precioUnitarioAlMomentoDeLaVenta) AS TotalFacturado
-        FROM dbVenta.Venta V
-        INNER JOIN dbVenta.DetalleVenta DV ON V.idVenta = DV.idVenta
-        INNER JOIN dbEmpleado.Empleado E ON V.legajoEmpleado = E.legajoEmpleado
-        WHERE V.fecha BETWEEN @fechaInicio AND @fechaFin
-        GROUP BY E.turno, MONTH(V.fecha), YEAR(V.fecha)
-    )
+	OPEN SYMMETRIC KEY EmpleadoLlave
+    DECRYPTION BY CERTIFICATE CertificadoEmpleado;
 
-    SELECT Año, Mes, Turno, TotalFacturado
-    FROM VentasPorTurno
-	FOR XML PATH('Venta'), ROOT('Reporte'), TYPE
+	DECLARE @mesInicio INT = ((@trimestre - 1) * 3) + 1;
+    DECLARE @mesFin INT = @trimestre * 3;
+
+	WITH FacturacionPorTurno AS (
+        SELECT 
+            DATENAME(MONTH, F.fecha) AS Mes,
+            CAST(DECRYPTBYKEY(E.turno) AS VARCHAR(16)) AS Turno, 
+            SUM(F.total) AS TotalFacturado
+        FROM dbVenta.Factura F
+        INNER JOIN dbVenta.Venta V ON F.idFactura = V.idFactura
+        INNER JOIN dbEmpleado.Empleado E ON V.legajoEmpleado = E.legajoEmpleado
+        WHERE YEAR(F.fecha) = @anio AND MONTH(F.fecha) BETWEEN @mesInicio AND @mesFin
+        GROUP BY DATENAME(MONTH, F.fecha), E.turno
+    )
+    SELECT Mes, Turno, TotalFacturado
+    FROM FacturacionPorTurno
+    FOR XML PATH('Facturacion'), ROOT('ReporteFacturacionTrimestral');
+
+	CLOSE SYMMETRIC KEY EmpleadoLlave;
 END;
 GO
 
 
 ---------------------------------------------------------------------
 -- Por rango de fechas: ingresando un rango de fechas a demanda, debe poder mostrar la cantidad de productos vendidos en ese rango, ordenado de mayor a menor.
-CREATE PROCEDURE dbReporte.CantidadProductosVendidosPorRangoFechas
+CREATE OR ALTER PROCEDURE dbReporte.CantidadProductosVendidosPorRangoFechas
     @fechaInicio DATE,
     @fechaFin DATE
 AS
 BEGIN
-    WITH ProductosVendidos AS (
-        SELECT P.nombre AS Producto, SUM(dv.cantidad) AS CantidadVendida
+	WITH ProductosVendidos AS (
+        SELECT 
+            P.nombre AS Producto,
+            SUM(DV.cantidad) AS CantidadVendida
         FROM dbVenta.Venta V
         INNER JOIN dbVenta.DetalleVenta DV ON V.idVenta = DV.idVenta
         INNER JOIN dbProducto.Producto P ON DV.idProducto = P.idProducto
         WHERE V.fecha BETWEEN @fechaInicio AND @fechaFin
         GROUP BY P.nombre
     )
-
-	SELECT Producto, CantidadVendida 
-	FROM ProductosVendidos
-	ORDER BY CantidadVendida DESC
-	FOR XML PATH('Producto'), ROOT('Reporte')
+    SELECT Producto, CantidadVendida
+    FROM ProductosVendidos
+    ORDER BY CantidadVendida DESC
+    FOR XML PATH('ProductoVendido'), ROOT('ReporteProductosVendidos');
 END;
 GO
 
 
 ---------------------------------------------------------------------
 -- Por rango de fechas: ingresando un rango de fechas a demanda, debe poder mostrar la cantidad de productos vendidos en ese rango por sucursal, ordenado de mayor a menor.
-CREATE PROCEDURE dbReporte.CantidadProductosVendidosPorRangoFechasSucursal
+CREATE OR ALTER PROCEDURE dbReporte.CantidadProductosVendidosPorRangoFechasSucursal
     @fechaInicio DATE,
     @fechaFin DATE
 AS
 BEGIN
-    WITH ProductosVendidosSucursal AS (
-        SELECT S.sucursal AS Sucursal, P.nombre AS Producto, SUM(dv.cantidad) AS CantidadVendida
+	WITH VentasPorSucursal AS (
+        SELECT 
+            S.sucursal AS Sucursal,
+            SUM(DV.cantidad) AS CantidadVendida
         FROM dbVenta.Venta V
         INNER JOIN dbVenta.DetalleVenta DV ON V.idVenta = DV.idVenta
-        INNER JOIN dbProducto.Producto P ON DV.idProducto = P.idProducto
         INNER JOIN dbEmpleado.Empleado E ON V.legajoEmpleado = E.legajoEmpleado
         INNER JOIN dbSucursal.Sucursal S ON E.idSucursal = S.idSucursal
         WHERE V.fecha BETWEEN @fechaInicio AND @fechaFin
-        GROUP BY S.sucursal, P.nombre
+        GROUP BY S.sucursal
     )
-
-	SELECT Sucursal, Producto, CantidadVendida 
-	FROM ProductosVendidosSucursal
-	ORDER BY CantidadVendida DESC
-	FOR XML PATH('Producto'), ROOT('Reporte')
+    SELECT Sucursal, CantidadVendida
+    FROM VentasPorSucursal
+    ORDER BY CantidadVendida DESC
+    FOR XML PATH('ProductosVendidos'), ROOT('ReporteVentasPorSucursal');
 END;
 GO
 
 
 ---------------------------------------------------------------------
--- Mostrar los 5 productos más vendidos en un mes, por semana
-CREATE PROCEDURE dbReporte.ProductosMasVendidosPorSemana
+-- Mostrar los 5 productos m�s vendidos en un mes, por semana
+CREATE OR ALTER PROCEDURE dbReporte.ProductosMasVendidosPorSemana
     @mes INT,
     @anio INT
 AS
 BEGIN
-    WITH ProductosPorSemana AS (
-        SELECT S.sucursal AS Sucursal, P.nombre AS Producto, 
-		DATEPART(week, V.fecha) AS Semana, SUM(DV.cantidad) AS CantidadVendida
+    WITH VentasPorSemana AS (
+        SELECT 
+            DATEPART(WEEK, V.fecha) AS Semana,
+            P.nombre AS Producto,
+            SUM(DV.cantidad) AS TotalCantidad,
+            ROW_NUMBER() OVER (PARTITION BY DATEPART(WEEK, V.fecha) ORDER BY SUM(DV.cantidad) DESC) AS rn
         FROM dbVenta.Venta V
         INNER JOIN dbVenta.DetalleVenta DV ON V.idVenta = DV.idVenta
         INNER JOIN dbProducto.Producto P ON DV.idProducto = P.idProducto
-        INNER JOIN dbEmpleado.Empleado E ON V.legajoEmpleado = E.legajoEmpleado
-        INNER JOIN dbSucursal.Sucursal S ON E.idSucursal = S.idSucursal
-        WHERE YEAR(V.fecha) = @anio AND MONTH(V.fecha) = @mes
-        GROUP BY S.sucursal, P.nombre, DATEPART(week, V.fecha)
+        WHERE MONTH(V.fecha) = @mes AND YEAR(V.fecha) = @anio
+        GROUP BY DATEPART(WEEK, V.fecha), P.nombre
     )
-
-    SELECT *
-    FROM (
-        SELECT Semana, Sucursal, Producto, CantidadVendida,
-		ROW_NUMBER() OVER (PARTITION BY Semana ORDER BY CantidadVendida DESC) AS Ranking
-        FROM ProductosPorSemana
-    ) AS RankingPorSemana
-    WHERE Ranking <= 5
-    FOR XML PATH('Producto'), ROOT('Reporte'), TYPE
+    SELECT Semana, Producto, TotalCantidad
+    FROM VentasPorSemana
+    WHERE rn <= 5
+    ORDER BY Semana, TotalCantidad DESC
+    FOR XML PATH('Ventas'), ROOT('ReporteProductosMasVendidosPorSemana');
 END;
 GO
 
 
 ---------------------------------------------------------------------
 -- Mostrar los 5 productos menos vendidos en el mes.
-CREATE PROCEDURE dbReporte.ProductosMenosVendidosPorMes
+CREATE OR ALTER PROCEDURE dbReporte.ProductosMenosVendidosPorMes
     @mes INT,
     @anio INT
 AS
@@ -164,63 +172,54 @@ BEGIN
         GROUP BY P.nombre
     )
     -- Seleccionar los 5 productos menos vendidos, ordenados por cantidad vendida ascendente
-    SELECT 
-        Producto,
-        CantidadVendida
-    FROM (
-        SELECT Producto, CantidadVendida, 
-		ROW_NUMBER() OVER (ORDER BY CantidadVendida ASC) AS Ranking
-        FROM ProductosPorMes
-    ) AS RankingProductos
-    WHERE Ranking <= 5
-    FOR XML PATH('Producto'), ROOT('Reporte'), TYPE
+    SELECT TOP 5 * FROM ProductosPorMes
+    ORDER BY CantidadVendida ASC
+    FOR XML PATH('Ventas'), ROOT('ReporteProductosMenosVendidos'), TYPE
 END;
 GO
 
 
 ---------------------------------------------------------------------
--- Mostrar total acumulado de ventas (o sea también mostrar el detalle) para una fecha y sucursal particulares
-
-CREATE PROCEDURE dbReporte.TotalAcumuladoVentasPorSucursal
+-- Mostrar total acumulado de ventas (o sea tambi�n mostrar el detalle) para una fecha y sucursal particulares
+-- HACER
+CREATE OR ALTER PROCEDURE dbReporte.TotalAcumuladoVentasPorSucursal
     @fecha DATE,
     @sucursal VARCHAR(50)
 AS
 BEGIN
-    WITH DetalleVentas AS (
-        SELECT S.sucursal AS Sucursal, V.fecha AS FechaVenta, P.nombre AS Producto,
-		DV.cantidad AS CantidadVendida, DV.precioUnitarioAlMomentoDeLaVenta AS PrecioUnitario,
-		(DV.cantidad * DV.precioUnitarioAlMomentoDeLaVenta) AS Subtotal
-        FROM dbVenta.Venta V
-        INNER JOIN dbVenta.DetalleVenta DV ON V.idVenta = DV.idVenta
-        INNER JOIN dbProducto.Producto P ON DV.idProducto = P.idProducto
-        INNER JOIN dbEmpleado.Empleado E ON V.legajoEmpleado = E.legajoEmpleado
-        INNER JOIN dbSucursal.Sucursal S ON E.idSucursal = S.idSucursal
-        WHERE V.fecha = @fecha AND S.sucursal = @sucursal
+    WITH VentasSucursal AS (
+        SELECT 
+            s.sucursal AS Sucursal,
+            v.fecha AS Fecha,
+            SUM(f.total) AS TotalFacturado
+        FROM dbVenta.Venta v
+        JOIN dbVenta.Factura f ON v.idFactura = f.idFactura
+        JOIN dbEmpleado.Empleado e ON v.legajoEmpleado = e.legajoEmpleado
+        JOIN dbSucursal.Sucursal s ON e.idSucursal = s.idSucursal
+        WHERE v.fecha = @fecha AND s.sucursal = @sucursal
+        GROUP BY s.sucursal, v.fecha
     )
-
-    SELECT Sucursal, FechaVenta, Producto, CantidadVendida, PrecioUnitario, Subtotal,
-	SUM(Subtotal) OVER (PARTITION BY Sucursal, FechaVenta) AS TotalAcumulado
-    FROM DetalleVentas
-    ORDER BY Producto
+    SELECT * FROM VentasSucursal
+	FOR XML PATH('Ventas'), ROOT('ReporteAcumuladoFechaSucursal'), TYPE
 END;
 GO
 
 
 ---------------------------------------------------------------------
--- Mensual: ingresando un mes y año determinado mostrar el vendedor de mayor monto facturado por sucursal.
+-- Mensual: ingresando un mes y a�o determinado mostrar el vendedor de mayor monto facturado por sucursal.
 CREATE OR ALTER PROCEDURE dbReporte.VendedorMayorTotalFacturadoPorSucursal
 	@mes INT, 
 	@anio INT
 AS
 BEGIN
 	WITH VentasFiltradas AS (
-        SELECT E.legajoEmpleado, E.nombre + ' ' + E.apellido AS Vendedor, S.idSucursal, S.sucursal AS Sucursal, SUM(F.total) AS Total
+        SELECT E.legajoEmpleado AS Empleado, S.idSucursal, S.sucursal AS Sucursal, SUM(F.total) AS Total
         FROM dbVenta.Venta V
 		JOIN dbEmpleado.Empleado E ON V.legajoEmpleado = E.legajoEmpleado
         JOIN dbVenta.Factura F ON V.idFactura = F.idFactura
         JOIN dbSucursal.Sucursal S ON E.idSucursal = S.idSucursal
 		WHERE YEAR(V.fecha) = @anio AND MONTH(V.fecha) = @mes
-        GROUP BY E.legajoEmpleado, E.nombre, E.apellido, S.idSucursal, S.sucursal
+        GROUP BY E.legajoEmpleado, S.idSucursal, S.sucursal
 	),
 	MaxPorSucursal AS (
         SELECT idSucursal, MAX(Total) AS MaxFacturacion
@@ -228,19 +227,21 @@ BEGIN
         GROUP BY idSucursal
     )
 
-	SELECT Vendedor, Sucursal, Total
+	SELECT Empleado, Sucursal, Total
     FROM VentasFiltradas VF
 	JOIN MaxPorSucursal MPS ON VF.idSucursal = MPS.idSucursal AND VF.Total = MPS.MaxFacturacion
-    FOR XML PATH('Facturacion'), ROOT('Reporte'), TYPE
+    FOR XML PATH('Facturacion'), ROOT('ReporteMayorMontoSucursal'), TYPE
 END
 GO
 
 
+---------------------------------------------------------------------
+-- Ejecutar reportes
+EXEC dbReporte.TotalFacturadoPorDiaMensual '1', '2019';
+EXEC dbReporte.TotalFacturadoPorTurnoTrimestral '1', '2019';
 EXEC dbReporte.CantidadProductosVendidosPorRangoFechas '2019-01-01', '2019-12-24';
 EXEC dbReporte.CantidadProductosVendidosPorRangoFechasSucursal '2019-01-01', '2019-12-24';
 EXEC dbReporte.ProductosMasVendidosPorSemana '1', '2019';
 EXEC dbReporte.ProductosMenosVendidosPorMes '1', '2019';
-EXEC dbReporte.TotalAcumuladoVentasPorSucursal '1', '2019';
-EXEC dbReporte.TotalFacturadoPorDiaMensual '1', '2019';
-EXEC dbReporte.TotalFacturadoPorTurnoTrimestral '2019-01-01', '2019-12-24';
+EXEC dbReporte.TotalAcumuladoVentasPorSucursal '2019-01-01', 'San Justo';
 EXEC dbReporte.VendedorMayorTotalFacturadoPorSucursal '1', '2019';

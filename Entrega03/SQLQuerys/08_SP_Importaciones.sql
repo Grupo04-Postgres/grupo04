@@ -22,10 +22,7 @@ GO
 CREATE OR ALTER PROCEDURE dbSucursal.ImportarSucursales
     @RutaArchivo VARCHAR(1024)
 AS
-BEGIN
-    -- Concatenar el nombre del archivo a la ruta
-    SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx';
-	
+BEGIN	
     -- Tabla temporal para almacenar los datos importados
 	CREATE TABLE #DatosSucursalArchivo (
 		Ciudad VARCHAR(50) COLLATE Modern_Spanish_CI_AS NOT NULL,
@@ -102,8 +99,6 @@ CREATE OR ALTER PROCEDURE dbVenta.ImportarMetodosDePago
 	@RutaArchivo VARCHAR(1024)
 AS
 BEGIN
-	SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx';
-
 	-- Tabla temporal para almacenar los datos importados
     CREATE TABLE #DatosMedioPagoArchivo (
         nombre VARCHAR(30) COLLATE Modern_Spanish_CI_AS NOT NULL,
@@ -163,8 +158,6 @@ CREATE OR ALTER PROCEDURE dbEmpleado.ImportarEmpleados
 	@RutaArchivo VARCHAR(1024)
 AS
 BEGIN
-	SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx';
-
 	-- Tabla temporal para almacenar los datos importados
 	CREATE TABLE #DatosEmpleados (
 		legajo INT,
@@ -284,8 +277,6 @@ CREATE OR ALTER PROCEDURE dbProducto.ImportarClasificacionProductos(@RutaArchivo
 AS
 BEGIN
 	BEGIN TRY
-		SET @RutaArchivo = @RutaArchivo + 'Informacion_complementaria.xlsx'
-
 		CREATE TABLE #tempClasificacionLineaCategoria (
 			linea VARCHAR(50) COLLATE Modern_Spanish_CI_AS,
 			categoria VARCHAR(50) COLLATE Modern_Spanish_CI_AS
@@ -425,7 +416,6 @@ BEGIN
         date DATETIME
     );
 
-
     -- Realizar la carga del archivo CSV usando BULK INSERT
 	DECLARE @SQL VARCHAR(MAX);
         
@@ -441,9 +431,9 @@ BEGIN
             ''Ã³'', ''ó''), 
             ''Ãº'', ''ú''), 
             ''Ã±'', ''ñ''), 
-            ''Ã‘'', ''Ñ'') ,
-        CAST(price / 100 AS DECIMAL(10,2)),
-		CAST(reference_price / 100 AS DECIMAL(10,2)),
+            ''Ã‘'', ''Ñ'') AS name,
+        CAST(price / 100 AS DECIMAL(10, 2)),  -- Aseguramos que el precio se almacene como decimal
+		CAST(reference_price / 100 AS DECIMAL(10, 2)),  -- Hacemos lo mismo con el precio de referencia
 		reference_unit,
 		date
     FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
@@ -453,6 +443,7 @@ BEGIN
 
     -- Ejecutar la consulta OPENROWSET
     EXEC(@SQL);
+
 
 -- Actualizamos los productos existentes
 	UPDATE p
@@ -746,28 +737,71 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbProducto.ImportarProductos(@RutaArchivo VARCHAR(1024))
+CREATE OR ALTER PROCEDURE dbProducto.ImportarProductos
+	@RutaArchivo VARCHAR(1024),
+	@RutaDirectorio VARCHAR(1024)
 AS
 BEGIN
 	BEGIN TRY
 		-- Iniciar transacción
 		BEGIN TRANSACTION;
+		
+			-- Establecer nombre de catalogos
+			CREATE TABLE #TempNombreProductos (
+				id INT IDENTITY(1,1) PRIMARY KEY,
+				Productos VARCHAR(100)
+			);
 
-		-- Establecer ruta de catalogos
-		DECLARE @RutaProductosCatalogo VARCHAR(1024)
-		DECLARE @RutaProductosElectronica VARCHAR(1024)
-		DECLARE @RutaProductosImportados VARCHAR(1024)
-		DECLARE @RutaClasificacionProductos VARCHAR(1024)
+			-- Comando para importar datos desde el archivo Excel
+			DECLARE @CargaDatosArchivo NVARCHAR(MAX) = 
+			'INSERT INTO #TempNombreProductos (Productos)
+			SELECT * FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+									''Excel 12.0; Database=' + @RutaArchivo + '; HDR=YES; IMEX=1;'', 
+									''SELECT * FROM [catalogo$]'');';
 
-		SET @RutaProductosCatalogo = @RutaArchivo + 'Productos/catalogo.csv'
-		SET @RutaProductosElectronica = @RutaArchivo + 'Productos/Electronic accessories.xlsx'
-		SET @RutaProductosImportados = @RutaArchivo + 'Productos/Productos_importados.xlsx'
-		SET @RutaClasificacionProductos = @RutaArchivo + 'Informacion_complementaria.xlsx'
+			EXEC sp_executesql @CargaDatosArchivo;
 
-		-- Importar productos con la ruta ya establecida.
-		EXEC dbProducto.ImportarCatalogo @RutaProductosCatalogo;
-		EXEC dbProducto.ImportarProductosElectronica @RutaProductosElectronica;
-		EXEC dbProducto.ImportarProductosImportados  @RutaProductosImportados;
+
+			-- Verificar los datos importados
+			IF NOT EXISTS (SELECT 1 FROM #TempNombreProductos)
+			BEGIN
+				RAISERROR('El archivo Excel no contiene datos en la hoja [catalogo$].', 16, 1);
+			END
+
+			-- Declarar variables para almacenar los valores extraídos
+			DECLARE @ProductosElectronica VARCHAR(100),
+					@ProductosCatalogo VARCHAR(100),
+					@ProductosImportados VARCHAR(100);
+
+			-- Extraer los valores de la tabla temporal
+			SELECT 
+			@ProductosElectronica = (SELECT Productos FROM #TempNombreProductos WHERE Id = 2),
+			@ProductosCatalogo = (SELECT Productos FROM #TempNombreProductos WHERE Id = 1),
+			@ProductosImportados = (SELECT Productos FROM #TempNombreProductos WHERE Id = 3);
+
+			-- Eliminar la tabla temporal
+			DROP TABLE #TempNombreProductos;
+
+			-- Verificar que los valores se asignaron correctamente
+			IF @ProductosElectronica IS NULL OR @ProductosCatalogo IS NULL OR @ProductosImportados IS NULL
+			BEGIN
+				RAISERROR('No se pudieron extraer correctamente los valores del Excel.', 16, 1)
+				RETURN;
+			END
+
+			-- Establecer ruta de catalogos
+			DECLARE @RutaProductosCatalogo VARCHAR(1024)
+			DECLARE @RutaProductosElectronica VARCHAR(1024)
+			DECLARE @RutaProductosImportados VARCHAR(1024)
+
+			SET @RutaProductosCatalogo = @RutaDirectorio + @ProductosElectronica
+			SET @RutaProductosElectronica = @RutaDirectorio + @ProductosCatalogo
+			SET @RutaProductosImportados = @RutaDirectorio + @ProductosImportados
+			
+			-- Importar productos con la ruta ya establecida.
+			EXEC dbProducto.ImportarCatalogo @RutaProductosCatalogo;
+			EXEC dbProducto.ImportarProductosElectronica @RutaProductosElectronica;
+			EXEC dbProducto.ImportarProductosImportados  @RutaProductosImportados;
 
 		-- Confirmar transacción si todo fue exitoso
 		COMMIT TRANSACTION;
@@ -798,8 +832,6 @@ CREATE OR ALTER PROCEDURE dbVenta.ImportarVentas
     @RutaArchivo VARCHAR(1024)
 AS
 BEGIN
-	SET @RutaArchivo = @RutaArchivo + 'Ventas_registradas.csv';
-
     -- Tabla temporal para almacenar los datos importados
     CREATE TABLE #DatosVentas (
         idFactura VARCHAR(11) COLLATE Modern_Spanish_CI_AS NOT NULL, --Factura.idFactura
@@ -906,3 +938,21 @@ BEGIN
     DROP TABLE #DatosVentas;
 END;
 GO
+
+
+---------------------------------------------------------------------
+-- ARCHIVO --
+
+CREATE OR ALTER PROCEDURE dbSistema.ImportarArchivo
+	@RutaInformacion VARCHAR(1024),
+	@RutaVentas VARCHAR(1024),
+	@DirectorioProductos VARCHAR(1024)
+AS
+BEGIN
+	EXEC dbSucursal.ImportarSucursales @RutaInformacion;
+	EXEC dbVenta.ImportarMetodosDePago @RutaInformacion;
+	EXEC dbEmpleado.ImportarEmpleados @RutaInformacion;
+	EXEC dbProducto.ImportarClasificacionProductos @RutaInformacion;
+	EXEC dbProducto.ImportarProductos @RutaInformacion, @DirectorioProductos;
+	EXEC dbVenta.ImportarVentas @RutaVentas;
+END;
