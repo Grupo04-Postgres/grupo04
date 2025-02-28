@@ -6,6 +6,7 @@
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
+   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Generar nota de credito para la devolucion de un producto
@@ -24,7 +25,7 @@ AS
 BEGIN
 	IF IS_MEMBER('Supervisor') = 0
     BEGIN
-		RAISERROR ('No tiene permisos para generar una nota de crÈdito.', 16, 1);
+		RAISERROR ('No tiene permisos para generar una nota de cr√©dito.', 16, 1);
 		RETURN;
     END
 
@@ -43,11 +44,11 @@ BEGIN
 		WHERE dv.idDetalleVenta = @idDetalleVenta;
 
 		IF @estadoFactura <> 'P'
-			SET @error = @error + 'No se puede generar una nota de crÈdito porque la factura no est· pagada.'
+			SET @error = @error + 'No se puede generar una nota de cr√©dito porque la factura no est√° pagada.'
 	END
 
 	IF LTRIM(RTRIM(@motivo)) = ''
-        SET @error = @error + 'El motivo no puede estar vacÌo. ';
+        SET @error = @error + 'El motivo no puede estar vac√≠o. ';
 
 	
 	-- Informar errores si los hubo 
@@ -61,14 +62,14 @@ BEGIN
 		SELECT @cantidadVendida = cantidad, @precioUnitario = precioUnitarioAlMomentoDeLaVenta, @idProducto = idProducto
 		FROM dbVenta.DetalleVenta WHERE idDetalleVenta = @idDetalleVenta;
 
-		-- Contar cu·ntas notas de crÈdito ya se generaron para ese detalle
+		-- Contar cu√°ntas notas de cr√©dito ya se generaron para ese detalle
 		DECLARE @cantidadDevuelta INT;
 		SELECT @cantidadDevuelta = COUNT(*) FROM dbVenta.NotaDeCredito WHERE idDetalleVenta = @idDetalleVenta;
 
-		-- Verificar que no se devuelvan m·s productos de los vendidos
+		-- Verificar que no se devuelvan m√°s productos de los vendidos
 		IF @cantidadDevuelta >= @cantidadVendida
 		BEGIN
-			RAISERROR ('No se pueden generar m·s notas de crÈdito de las unidades vendidas.', 16, 1);
+			RAISERROR ('No se pueden generar m√°s notas de cr√©dito de las unidades vendidas.', 16, 1);
 			RETURN;
 		END
 
@@ -107,12 +108,12 @@ BEGIN
 	-- Crear login
 	IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_supervisor')
 	BEGIN
-		CREATE LOGIN usuario_supervisor WITH PASSWORD = 'contraseÒaSupervisor';
+		CREATE LOGIN usuario_supervisor WITH PASSWORD = 'contrase√±aSupervisor';
 	END
 
 	IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'usuario_empleado')
 	BEGIN
-		CREATE LOGIN usuario_empleado WITH PASSWORD = 'contraseÒaEmpleado';
+		CREATE LOGIN usuario_empleado WITH PASSWORD = 'contrase√±aEmpleado';
 	END
 
 	-- Crear usuarios
