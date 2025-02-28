@@ -6,6 +6,7 @@
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
+   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Generar reportes en xml
@@ -20,7 +21,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mensual: ingresando un mes y aÒo determinado mostrar el total facturado por dÌas de la semana, incluyendo s·bado y domingo.
+-- Mensual: ingresando un mes y a√±o determinado mostrar el total facturado por d√≠as de la semana, incluyendo s√°bado y domingo.
 CREATE OR ALTER PROCEDURE dbReporte.TotalFacturadoPorDiaMensual
 	@mes INT, 
 	@anio INT
@@ -128,7 +129,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mostrar los 5 productos m·s vendidos en un mes, por semana
+-- Mostrar los 5 productos m√°s vendidos en un mes, por semana
 CREATE OR ALTER PROCEDURE dbReporte.ProductosMasVendidosPorSemana
     @mes INT,
     @anio INT
@@ -180,7 +181,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mostrar total acumulado de ventas (o sea tambiÈn mostrar el detalle) para una fecha y sucursal particulares
+-- Mostrar total acumulado de ventas (o sea tambi√©n mostrar el detalle) para una fecha y sucursal particulares
 -- HACER
 CREATE OR ALTER PROCEDURE dbReporte.TotalAcumuladoVentasPorSucursal
     @fecha DATE,
@@ -206,7 +207,7 @@ GO
 
 
 ---------------------------------------------------------------------
--- Mensual: ingresando un mes y aÒo determinado mostrar el vendedor de mayor monto facturado por sucursal.
+-- Mensual: ingresando un mes y a√±o determinado mostrar el vendedor de mayor monto facturado por sucursal.
 CREATE OR ALTER PROCEDURE dbReporte.VendedorMayorTotalFacturadoPorSucursal
 	@mes INT, 
 	@anio INT
