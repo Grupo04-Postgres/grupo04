@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# SQL Server Management Studio Solution File, Format Version 20.00
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{73BDD664-F13C-4D29-8ED1-1BF37C3C6469}"
+	ProjectSection(SolutionItems) = preProject
+		00_CreacionObjetos.sql = 00_CreacionObjetos.sql
+		01_SP_Inserciones.sql = 01_SP_Inserciones.sql
+		02_SP_Actualizaciones.sql = 02_SP_Actualizaciones.sql
+		03_SP_Borrados.sql = 03_SP_Borrados.sql
+		04_JuegoDePrueba_Inserciones.sql = 04_JuegoDePrueba_Inserciones.sql
+		05_JuegoDePrueba_Actualizaciones.sql = 05_JuegoDePrueba_Actualizaciones.sql
+		06_JuegoDePrueba_Borrados.sql = 06_JuegoDePrueba_Borrados.sql
+		07_PreImportaciones.sql = 07_PreImportaciones.sql
+		08_SP_Importaciones.sql = 08_SP_Importaciones.sql
+		09_EXEC_Importaciones.sql = 09_EXEC_Importaciones.sql
+		10_SP_Reportes.sql = 10_SP_Reportes.sql
+		11_SP_NotaDeCredito.sql = 11_SP_NotaDeCredito.sql
+		12_JuegosDePrueba_NotaDeCredito.sql = 12_JuegosDePrueba_NotaDeCredito.sql
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5F6BA08E-1E08-419F-AEBD-841C783E7FE2}
+	EndGlobalSection
+EndGlobal

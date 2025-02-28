@@ -28,7 +28,7 @@ EXEC dbProducto.ActualizarCategoriaProducto @idCategoriaProducto = 1, @nombre = 
 SELECT * FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = 1
 
 -- Prueba 2: Intentar actualizar nombre invalido.
--- Esperado: Error: "El nombre no puede estar vac√≠o."
+-- Esperado: Error: "El nombre no puede estar vacÌo."
 EXEC dbProducto.ActualizarCategoriaProducto @idCategoriaProducto = 1, @nombre = '    ';
 
 -- Prueba 3: Intentar actualizar una categoria de producto no existente.
@@ -47,7 +47,7 @@ EXEC dbProducto.ActualizarLineaProducto @idLineaProducto = 1, @nombre = 'Tecnolo
 SELECT * FROM dbProducto.LineaProducto WHERE idLineaProducto = 1
 
 -- Prueba 2: Intentar actualizar nombre invalido.
--- Esperado: Error: "El nombre no puede estar vac√≠o."
+-- Esperado: Error: "El nombre no puede estar vacÌo."
 EXEC dbProducto.ActualizarLineaProducto @idLineaProducto = 1, @nombre = '    ';
 
 -- Prueba 3: Intentar actualizar una linea de producto no existente.
@@ -66,7 +66,7 @@ EXEC dbProducto.ActualizarProducto @idProducto = 2, @nombre = 'Auriculares de ca
 SELECT * FROM dbProducto.Producto WHERE idProducto = 2
 
 -- Prueba 2: Intentar actualizar nombre invalido.
--- Esperado: Error: "El nombre no puede estar vac√≠o."
+-- Esperado: Error: "El nombre no puede estar vacÌo."
 SELECT * FROM dbProducto.Producto WHERE idProducto = 2
 EXEC dbProducto.ActualizarProducto @idProducto = 2, @nombre = '   ';
 SELECT * FROM dbProducto.Producto WHERE idProducto = 2
@@ -94,7 +94,7 @@ EXEC dbCliente.ActualizarCliente @idCliente = 1, @nombre = 'Antonio'
 SELECT * FROM dbCliente.Cliente WHERE idCliente = 1
 
 -- Prueba 3: Actualizar apellido.
--- Inicial: apellido = 'P√©rez'
+-- Inicial: apellido = 'PÈrez'
 -- Esperado: apellido = 'Schereik'
 SELECT * FROM dbCliente.Cliente WHERE idCliente = 1
 EXEC dbCliente.ActualizarCliente @idCliente = 1, @apellido = 'Schereik'
@@ -125,27 +125,27 @@ SELECT * FROM dbCliente.Cliente WHERE idCliente = 1
 -- Inicial: Los campos esperados
 -- Esperado: Los campos iniciales
 SELECT * FROM dbCliente.Cliente WHERE idCliente = 1
-EXEC dbCliente.ActualizarCliente @idCliente = 1, @cuil = '30-12345678-5', @nombre = 'Juan', @apellido = 'P√©rez', @telefono = '1122334455', @genero = 'Male', @tipoCliente = 'Member';
+EXEC dbCliente.ActualizarCliente @idCliente = 1, @cuil = '30-12345678-5', @nombre = 'Juan', @apellido = 'PÈrez', @telefono = '1122334455', @genero = 'Male', @tipoCliente = 'Member';
 SELECT * FROM dbCliente.Cliente WHERE idCliente = 1
 
 -- Prueba 8: Intentar actualizar cuil invalido.
--- Esperado: Error: "El CUIL es inv√°lido. "
+-- Esperado: Error: "El CUIL es inv·lido. "
 EXEC dbCliente.ActualizarCliente @idCliente = 1, @cuil = '205'
 
 -- Prueba 9: Intentar actualizar nombre invalido.
--- Esperado: Error: "El nombre no puede estar vac√≠o. "
+-- Esperado: Error: "El nombre no puede estar vacÌo. "
 EXEC dbCliente.ActualizarCliente @idCliente = 1, @nombre = '  '
 
 -- Prueba 10: Intentar actualizar apellido invalido.
--- Esperado: Error: "El apellido no puede estar vac√≠o."
+-- Esperado: Error: "El apellido no puede estar vacÌo."
 EXEC dbCliente.ActualizarCliente @idCliente = 1, @apellido = '  '
 
 -- Prueba 11: Intentar actualizar telefono invalido.
--- Esperado: Error: "El tel√©fono no puede estar vac√≠o."
+-- Esperado: Error: "El telÈfono no puede estar vacÌo."
 EXEC dbCliente.ActualizarCliente @idCliente = 1, @telefono = ' '
 
 -- Prueba 12: Intentar actualizar genero invalido (fuera de las opciones).
--- Esperado: Error: "El g√©nero debe ser Female o Male."
+-- Esperado: Error: "El gÈnero debe ser Female o Male."
 EXEC dbCliente.ActualizarCliente @idCliente = 1, @genero = 'Mujer'
 
 -- Prueba 13: Intentar actualizar tipoCliente invalido (fuera de las opciones).
@@ -203,15 +203,15 @@ EXEC dbSucursal.ActualizarSucursal @idSucursal = 1, @ciudad = 'Buenos Aires', @s
 SELECT * FROM dbSucursal.Sucursal WHERE idSucursal = 1
 
 -- Prueba 7: Intentar actualizar ciudad invalida.
--- Esperado: Error: "La ciudad no puede estar vac√≠a."
+-- Esperado: Error: "La ciudad no puede estar vacÌa."
 EXEC dbSucursal.ActualizarSucursal @idSucursal = 1, @ciudad = '   ';
 
 -- Prueba 8: Intentar actualizar sucursal invalida.
--- Inicial: Error: "La sucursal no puede estar vac√≠a."
+-- Inicial: Error: "La sucursal no puede estar vacÌa."
 EXEC dbSucursal.ActualizarSucursal @idSucursal = 1, @sucursal = '    ';
 
 -- Prueba 9: Intentar actualizar direccion invalida.
--- Inicial: Error: "La direcci√≥n no puede estar vac√≠a."
+-- Inicial: Error: "La direcciÛn no puede estar vacÌa."
 EXEC dbSucursal.ActualizarSucursal @idSucursal = 1, @direccion = ' ';
 
 -- Prueba 10: Intentar actualizar telefono invalido.
@@ -219,7 +219,7 @@ EXEC dbSucursal.ActualizarSucursal @idSucursal = 1, @direccion = ' ';
 EXEC dbSucursal.ActualizarSucursal @idSucursal = 1, @telefono = ' ';
 
 -- Prueba 11: Intentar actualizar horario invalido.
--- Inicial: Error: "El horario no puede estar vac√≠o."
+-- Inicial: Error: "El horario no puede estar vacÌo."
 EXEC dbSucursal.ActualizarSucursal @idSucursal = 1, @horario = ' ';
 
 -- Prueba 12: Intentar actualizar una sucursal no existente.
@@ -245,7 +245,7 @@ EXEC dbEmpleado.ActualizarEmpleado @legajoEmpleado = 1, @nombre = 'Romina'
 EXEC dbEmpleado.ObtenerEmpleado 1;
 
 -- Prueba 3: Actualizar apellido.
--- Inicial: apellido = 'M√©ndez'
+-- Inicial: apellido = 'MÈndez'
 -- Esperado: apellido = 'Schereik'
 EXEC dbEmpleado.ObtenerEmpleado 1;
 EXEC dbEmpleado.ActualizarEmpleado @legajoEmpleado = 1, @apellido = 'Schereik'
@@ -269,7 +269,7 @@ EXEC dbEmpleado.ObtenerEmpleado 1;
 -- Inicial: Campos iniciales.
 -- Esperado: Campos esperados.
 EXEC dbEmpleado.ObtenerEmpleado 1;
-EXEC dbEmpleado.ActualizarEmpleado @legajoEmpleado = 1, @cuil = '30-12345678-6', @nombre = 'Laura', @apellido = 'M√©ndez', @emailPersonal = 'laura@gmail.com', @emailEmpresa = 'laura@empresa.com', @turno = 'TM';
+EXEC dbEmpleado.ActualizarEmpleado @legajoEmpleado = 1, @cuil = '30-12345678-6', @nombre = 'Laura', @apellido = 'MÈndez', @emailPersonal = 'laura@gmail.com', @emailEmpresa = 'laura@empresa.com', @turno = 'TM';
 EXEC dbEmpleado.ObtenerEmpleado 1;
 
 -- Prueba 7: Intentar actualizar turno invalido (no esta en las opciones).
@@ -319,11 +319,11 @@ EXEC dbVenta.ActualizarMetodoPago 1, 'Cash';
 SELECT * FROM dbVenta.MetodoPago WHERE idMetodoPago = 1
 
 -- Prueba 2: Intentar actualizar nombre invalido.
--- Esperado: Error: "El nombre no puede estar vac√≠o."
+-- Esperado: Error: "El nombre no puede estar vacÌo."
 EXEC dbVenta.ActualizarMetodoPago 1, '   ';
 
 -- Prueba 3: Intentar actualizar metodo de pago inexistente.
--- Esperado: Error: "No existe un m√©todo de pago con el ID especificado."
+-- Esperado: Error: "No existe un mÈtodo de pago con el ID especificado."
 EXEC dbVenta.ActualizarMetodoPago 99, 'Cash';
 
 
