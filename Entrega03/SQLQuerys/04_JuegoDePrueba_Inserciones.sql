@@ -6,6 +6,7 @@
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
+   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Realice los juegos de prueba de los SP de inserciones
@@ -20,131 +21,131 @@ GO
 ---------------------------------------------------------------------
 -- LINEA DE PRODUCTO --
 
--- Prueba 1: Insertar una linea válida
--- Esperado: Inserción exitosa
-EXEC dbProducto.InsertarLineaProducto 'Electrónica';
+-- Prueba 1: Insertar una linea vÃ¡lida
+-- Esperado: InserciÃ³n exitosa
+EXEC dbProducto.InsertarLineaProducto 'ElectrÃ³nica';
 
--- Prueba 2: Intentar insertar una linea con nombre vacío
--- Esperado: Error 'El nombre no puede estar vacío.'
+-- Prueba 2: Intentar insertar una linea con nombre vacÃ­o
+-- Esperado: Error 'El nombre no puede estar vacÃ­o.'
 EXEC dbProducto.InsertarLineaProducto '';
 
 -- Prueba 3: Intentar insertar una linea con solo espacios en blanco
--- Esperado: Error 'El nombre no puede estar vacío.'
+-- Esperado: Error 'El nombre no puede estar vacÃ­o.'
 EXEC dbProducto.InsertarLineaProducto '   ';
 
 
 ---------------------------------------------------------------------
 -- CATEGORIA DE PRODUCTO --
 
--- Prueba 1: Insertar una categoria de producto válida
--- Esperado: Inserción exitosa
+-- Prueba 1: Insertar una categoria de producto vÃ¡lida
+-- Esperado: InserciÃ³n exitosa
 EXEC dbProducto.InsertarCategoriaProducto 'Celulares', 1;
 
--- Prueba 2: Intentar insertar una categoria de producto con nombre vacío
--- Esperado: Error 'El nombre no puede estar vacío.'
+-- Prueba 2: Intentar insertar una categoria de producto con nombre vacÃ­o
+-- Esperado: Error 'El nombre no puede estar vacÃ­o.'
 EXEC dbProducto.InsertarCategoriaProducto '', 1;
 
--- Prueba 3: Intentar insertar una categoria de producto con una categoría inexistente
+-- Prueba 3: Intentar insertar una categoria de producto con una categorÃ­a inexistente
 -- Esperado: Error 'No existe una linea de producto con el ID especificado.'
 EXEC dbProducto.InsertarCategoriaProducto 'Tablets', 999; 
 
--- Prueba 1: Insertar una categoria de producto válida
--- Esperado: Inserción exitosa
+-- Prueba 1: Insertar una categoria de producto vÃ¡lida
+-- Esperado: InserciÃ³n exitosa
 EXEC dbProducto.InsertarCategoriaProducto 'Auriculares', 1;
 
 
 ---------------------------------------------------------------------
 -- PRODUCTO --
 
--- Prueba 1: Insertar un producto válido
--- Esperado: Inserción exitosa
+-- Prueba 1: Insertar un producto vÃ¡lido
+-- Esperado: InserciÃ³n exitosa
 EXEC dbProducto.InsertarProducto 'iPhone 13', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 1;
 
--- Prueba 2: Intentar insertar un producto con nombre vacío
--- Esperado: Error 'El nombre no puede ser vacío.'
+-- Prueba 2: Intentar insertar un producto con nombre vacÃ­o
+-- Esperado: Error 'El nombre no puede ser vacÃ­o.'
 EXEC dbProducto.InsertarProducto '', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 1;
 
 -- Prueba 3: Intentar insertar un producto con precio negativo
 -- Esperado: Error 'El precio debe ser mayor a 0.'
 EXEC dbProducto.InsertarProducto 'Samsung S21', -500, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 1;
 
--- Prueba 4: Intentar insertar un producto con línea de producto inexistente
+-- Prueba 4: Intentar insertar un producto con lÃ­nea de producto inexistente
 -- Esperado: Error 'No existe una categoria de producto con el ID especificado.'
 EXEC dbProducto.InsertarProducto 'Samsung S21', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 999;
 
--- Prueba 2: Insertar un producto válido
--- Esperado: Inserción exitosa
+-- Prueba 2: Insertar un producto vÃ¡lido
+-- Esperado: InserciÃ³n exitosa
 EXEC dbProducto.InsertarProducto 'Auricular inalambrico', 1000, 1100, 'UN', '2024-06-01 12:06:00', '1 unidad', 2;
 
 
 ---------------------------------------------------------------------
 -- CLIENTE --
 
--- Prueba 1: Insertar un cliente válido
--- Esperado: Inserción exitosa
-EXEC dbCliente.InsertarCliente '30-12345678-5', 'Juan', 'Pérez', '1122334455', 'Male', 'Member';
+-- Prueba 1: Insertar un cliente vÃ¡lido
+-- Esperado: InserciÃ³n exitosa
+EXEC dbCliente.InsertarCliente '30-12345678-5', 'Juan', 'PÃ©rez', '1122334455', 'Male', 'Member';
 
--- Prueba 2: Insertar un cliente con CUIL inválido
--- Esperado: Error 'El CUIL es inválido.'
-EXEC dbCliente.InsertarCliente '12345678901', 'Juan', 'Pérez', '1122334455', 'Male', 'Member';
+-- Prueba 2: Insertar un cliente con CUIL invÃ¡lido
+-- Esperado: Error 'El CUIL es invÃ¡lido.'
+EXEC dbCliente.InsertarCliente '12345678901', 'Juan', 'PÃ©rez', '1122334455', 'Male', 'Member';
 
--- Prueba 3: Insertar un cliente con nombre vacío
--- Esperado: Error 'El nombre no puede estar vacío.'
-EXEC dbCliente.InsertarCliente '20-41708808-4', '', 'Pérez', '1122334455', 'Male', 'Member';
+-- Prueba 3: Insertar un cliente con nombre vacÃ­o
+-- Esperado: Error 'El nombre no puede estar vacÃ­o.'
+EXEC dbCliente.InsertarCliente '20-41708808-4', '', 'PÃ©rez', '1122334455', 'Male', 'Member';
 
 
 ---------------------------------------------------------------------
 -- SUCURSAL --
 
--- Prueba 1: Insertar una sucursal válida
--- Esperado: Inserción exitosa
+-- Prueba 1: Insertar una sucursal vÃ¡lida
+-- Esperado: InserciÃ³n exitosa
 EXEC dbSucursal.InsertarSucursal 'Buenos Aires', 'Sucursal Centro', 'Av. 9 de Julio 1234', '1122334455', '9 a 18';
 
--- Prueba 2: Insertar una sucursal con ciudad vacía
--- Esperado: Error 'La ciudad no puede estar vacía.'
+-- Prueba 2: Insertar una sucursal con ciudad vacÃ­a
+-- Esperado: Error 'La ciudad no puede estar vacÃ­a.'
 EXEC dbSucursal.InsertarSucursal '', 'Sucursal Centro', 'Av. 9 de Julio 1234', '1122334455', '9 a 18';
 
--- Prueba 3: Insertar una sucursal con teléfono vacío
--- Esperado: Error 'El teléfono no puede estar vacío.'
+-- Prueba 3: Insertar una sucursal con telÃ©fono vacÃ­o
+-- Esperado: Error 'El telÃ©fono no puede estar vacÃ­o.'
 EXEC dbSucursal.InsertarSucursal 'Buenos Aires', 'Sucursal Centro', 'Av. 9 de Julio 1234', '', '9 a 18'
 
--- Prueba 4: Insertar una sucursal válida
--- Esperado: Inserción exitosa
+-- Prueba 4: Insertar una sucursal vÃ¡lida
+-- Esperado: InserciÃ³n exitosa
 EXEC dbSucursal.InsertarSucursal 'San justo', 'Sucursal Oeste', 'Peron', '1122334455', '9 a 18';
 
 
 ---------------------------------------------------------------------
 -- EMPLEADO --
 
--- Prueba 1: Insertar un empleado válido.
--- Esperado: Inserción exitosa
-EXEC dbEmpleado.InsertarEmpleado 1, '30-12345678-6', 'Laura', 'Méndez', 'Calle Falsa 123', 'laura@gmail.com', 'laura@empresa.com', 'TM', 'Vendedora', '2024-01-01', 1;
+-- Prueba 1: Insertar un empleado vÃ¡lido.
+-- Esperado: InserciÃ³n exitosa
+EXEC dbEmpleado.InsertarEmpleado 1, '30-12345678-6', 'Laura', 'MÃ©ndez', 'Calle Falsa 123', 'laura@gmail.com', 'laura@empresa.com', 'TM', 'Vendedora', '2024-01-01', 1;
 
--- Prueba 2: Intentar insertar con CUIL inválido.
--- Esperado: Error 'El CUIL es inválido
-EXEC dbEmpleado.InsertarEmpleado 3, '123', 'Mario', 'González', 'Calle Real 456', 'mario@gmail.com', 'mario@empresa.com', 'TT', 'Gerente', '2024-01-01', 1;
+-- Prueba 2: Intentar insertar con CUIL invÃ¡lido.
+-- Esperado: Error 'El CUIL es invÃ¡lido
+EXEC dbEmpleado.InsertarEmpleado 3, '123', 'Mario', 'GonzÃ¡lez', 'Calle Real 456', 'mario@gmail.com', 'mario@empresa.com', 'TT', 'Gerente', '2024-01-01', 1;
 
--- Prueba 3: Intentar insertar con turno inválido.
+-- Prueba 3: Intentar insertar con turno invÃ¡lido.
 -- Esperado: Error 'El turno debe ser TM, TT o Jornada completa.'
-EXEC dbEmpleado.InsertarEmpleado 4, '20-34567890-1', 'Marta', 'Ramírez', 'Calle 789', 'marta@gmail.com', 'marta@empresa.com', 'Nocturno', 'Supervisora', '2024-01-01', 1;
+EXEC dbEmpleado.InsertarEmpleado 4, '20-34567890-1', 'Marta', 'RamÃ­rez', 'Calle 789', 'marta@gmail.com', 'marta@empresa.com', 'Nocturno', 'Supervisora', '2024-01-01', 1;
 
--- Prueba 4: Insertar un empleado válido.
--- Esperado: Inserción exitosa
+-- Prueba 4: Insertar un empleado vÃ¡lido.
+-- Esperado: InserciÃ³n exitosa
 EXEC dbEmpleado.InsertarEmpleado 2, '30-22345678-6', 'Juan', 'Rodriguez', 'Calle Falsa 123', 'juan@gmail.com', 'juan@empresa.com', 'TM', 'Gerente', '2024-01-01', 2;
 
--- Prueba 5: Insertar un empleado válido.
--- Esperado: Inserción exitosa
+-- Prueba 5: Insertar un empleado vÃ¡lido.
+-- Esperado: InserciÃ³n exitosa
 EXEC dbEmpleado.InsertarEmpleado 3, '30-32345678-6', 'Jose', 'Gonzales', 'Calle Falsa 123', 'jose@gmail.com', 'jose@empresa.com', 'TM', 'Gerente', '2024-01-01', 2;
 
 
 ---------------------------------------------------------------------
 -- FACTURA --
 
--- Prueba 1: Insertar una factura válida.
--- Esperado: Inserción exitosa.
+-- Prueba 1: Insertar una factura vÃ¡lida.
+-- Esperado: InserciÃ³n exitosa.
 EXEC dbVenta.InsertarFactura '222-22-2222', 'A', 'E', '2025-01-10', '12:30', 1200.50;
 
--- Prueba 2: Intentar insertar con tipo de factura inválido.
+-- Prueba 2: Intentar insertar con tipo de factura invÃ¡lido.
 -- Esperado: Error 'El tipo de factura debe ser A, B o C.'
 EXEC dbVenta.InsertarFactura '222-22-2223', 'X', 'E', '2025-01-10', '12:30', 1200.50;
 
@@ -160,28 +161,28 @@ EXEC dbVenta.InsertarFactura '2222222', 'A', 'E', '2025-01-10', '12:30', 1200.50
 ---------------------------------------------------------------------
 -- METODO DE PAGO --
 
--- Prueba 1: Insertar un método de pago válido.
--- Esperado: Inserción exitosa.
-EXEC dbVenta.InsertarMetodoPago 'Tarjeta de crédito';
+-- Prueba 1: Insertar un mÃ©todo de pago vÃ¡lido.
+-- Esperado: InserciÃ³n exitosa.
+EXEC dbVenta.InsertarMetodoPago 'Tarjeta de crÃ©dito';
 
--- Prueba 2: Intentar insertar con nombre vacío.
--- Esperado: Error 'El nombre no puede estar vacío.'
+-- Prueba 2: Intentar insertar con nombre vacÃ­o.
+-- Esperado: Error 'El nombre no puede estar vacÃ­o.'
 EXEC dbVenta.InsertarMetodoPago '   ';
 
 
 ---------------------------------------------------------------------
 -- VENTA --
 
--- Prueba 1: Insertar una venta válida.
--- Esperado: Inserción exitosa.
+-- Prueba 1: Insertar una venta vÃ¡lida.
+-- Esperado: InserciÃ³n exitosa.
 EXEC dbVenta.InsertarVenta '2025-01-10', '12:30', 'AAA', 1, 1, '222-22-2222', 1;
 
 
 ---------------------------------------------------------------------
 -- DETALLE VENTA --
 
--- Prueba 1: Insertar un detalle de venta válida.
--- Esperado: Inserción exitosa.
+-- Prueba 1: Insertar un detalle de venta vÃ¡lida.
+-- Esperado: InserciÃ³n exitosa.
 EXEC dbVenta.InsertarDetalleVenta 1, 1, 1, 1;
 
 -- Prueba 2: Intentar insertar cantidad negativa.
