@@ -6,6 +6,7 @@
 -- Integrantes:
    -- Schereik, Brenda 45128557
    -- Turri, Teo Francis 42819058
+   -- Varela, Daniel Mariano 40388978
 
 ---------------------------------------------------------------------
 -- Consigna: Genere store procedures para manejar las actualizaciones
@@ -28,17 +29,17 @@ BEGIN
 
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
-        SET @error = @error + 'No existe una lÌnea con el ID especificado. ';
+        SET @error = @error + 'No existe una l√≠nea con el ID especificado. ';
 
     IF LTRIM(RTRIM(@nombre)) = '' 
-        SET @error = @error + 'El nombre no puede estar vacÌo. ';
+        SET @error = @error + 'El nombre no puede estar vac√≠o. ';
 
 	-- Informar errores si los hubo
     IF @error <> ''
         RAISERROR(@error, 16, 1);
     ELSE
 	BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbProducto.LineaProducto
         SET nombre = @nombre
         WHERE idLineaProducto = @idLineaProducto;
@@ -60,20 +61,20 @@ BEGIN
 
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
-        SET @error = @error + 'No existe una categorÌa de producto con el ID especificado. ';
+        SET @error = @error + 'No existe una categor√≠a de producto con el ID especificado. ';
     
     IF @idLineaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.LineaProducto WHERE idLineaProducto = @idLineaProducto)
-        SET @error = @error + 'No existe una lÌnea con el ID especificado. ';
+        SET @error = @error + 'No existe una l√≠nea con el ID especificado. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
-        SET @error = @error + 'El nombre no puede estar vacÌo.';
+        SET @error = @error + 'El nombre no puede estar vac√≠o.';
 	
 	-- Informar errores si los hubo
     IF @error <> ''
         RAISERROR(@error, 16, 1);
     ELSE
 	BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbProducto.CategoriaProducto
         SET 
             nombre = COALESCE(@nombre, nombre),
@@ -105,7 +106,7 @@ BEGIN
         SET @error = @error + 'No existe un producto con el ID especificado. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = '' 
-        SET @error = @error + 'El nombre no puede ser vacÌo. ';
+        SET @error = @error + 'El nombre no puede ser vac√≠o. ';
     
     IF @precio IS NOT NULL AND @precio <= 0
         SET @error = @error + 'El precio debe ser mayor a 0. ';
@@ -114,20 +115,20 @@ BEGIN
         SET @error = @error + 'El precio de referencia debe ser mayor a 0. ';
     
     IF @unidadReferencia IS NOT NULL AND LTRIM(RTRIM(@unidadReferencia)) = '' 
-        SET @error = @error + 'La unidad de referencia no puede estar vacÌa. ';
+        SET @error = @error + 'La unidad de referencia no puede estar vac√≠a. ';
     
     IF @cantidadUnitaria IS NOT NULL AND LTRIM(RTRIM(@cantidadUnitaria)) = '' 
-        SET @error = @error + 'La cantidad unitaria no puede estar vacÌa. ';
+        SET @error = @error + 'La cantidad unitaria no puede estar vac√≠a. ';
     
     IF @idCategoriaProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbProducto.CategoriaProducto WHERE idCategoriaProducto = @idCategoriaProducto)
-        SET @error = @error + 'No existe una categorÌa de producto con el ID especificado. ';
+        SET @error = @error + 'No existe una categor√≠a de producto con el ID especificado. ';
     	
 	-- Informar errores si los hubo 
     IF @error <> ''
         RAISERROR(@error, 16, 1);
     ELSE
 	BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbProducto.Producto
         SET 
             nombre = COALESCE(@nombre, nombre),
@@ -163,19 +164,19 @@ BEGIN
         SET @error = @error + 'No existe un cliente con el ID especificado. ';
     
     IF @cuil IS NOT NULL AND dbSistema.ValidarCUIL(@cuil) = 0
-        SET @error = @error + 'El CUIL es inv·lido. ';
+        SET @error = @error + 'El CUIL es inv√°lido. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = '' 
-        SET @error = @error + 'El nombre no puede estar vacÌo. ';
+        SET @error = @error + 'El nombre no puede estar vac√≠o. ';
     
     IF @apellido IS NOT NULL AND LTRIM(RTRIM(@apellido)) = '' 
-        SET @error = @error + 'El apellido no puede estar vacÌo. ';
+        SET @error = @error + 'El apellido no puede estar vac√≠o. ';
     
     IF @telefono IS NOT NULL AND LTRIM(RTRIM(@telefono)) = '' 
-        SET @error = @error + 'El telÈfono no puede estar vacÌo. ';
+        SET @error = @error + 'El tel√©fono no puede estar vac√≠o. ';
     
     IF @genero IS NOT NULL AND @genero NOT IN ('Female', 'Male')
-        SET @error = @error + 'El gÈnero debe ser Female o Male. ';
+        SET @error = @error + 'El g√©nero debe ser Female o Male. ';
     
     IF @tipoCliente IS NOT NULL AND @tipoCliente NOT IN ('Member', 'Normal')
         SET @error = @error + 'El tipo de cliente debe ser Member o Normal. ';
@@ -185,7 +186,7 @@ BEGIN
         RAISERROR(@error, 16, 1);
     ELSE
 	BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbCliente.Cliente
         SET 
             cuil = COALESCE(@cuil, cuil),
@@ -219,26 +220,26 @@ BEGIN
         SET @error = @error + 'No existe una sucursal con el ID especificado. ';
     
     IF @ciudad IS NOT NULL AND LTRIM(RTRIM(@ciudad)) = '' 
-        SET @error = @error + 'La ciudad no puede estar vacÌa. ';
+        SET @error = @error + 'La ciudad no puede estar vac√≠a. ';
     
     IF @sucursal IS NOT NULL AND LTRIM(RTRIM(@sucursal)) = '' 
-        SET @error = @error + 'La sucursal no puede estar vacÌa. ';
+        SET @error = @error + 'La sucursal no puede estar vac√≠a. ';
     
     IF @direccion IS NOT NULL AND LTRIM(RTRIM(@direccion)) = '' 
-        SET @error = @error + 'La direcciÛn no puede estar vacÌa. ';
+        SET @error = @error + 'La direcci√≥n no puede estar vac√≠a. ';
     
     IF @telefono IS NOT NULL AND LTRIM(RTRIM(@telefono)) = '' 
-        SET @error = @error + 'El telÈfono no puede estar vacÌo. ';
+        SET @error = @error + 'El tel√©fono no puede estar vac√≠o. ';
     
     IF @horario IS NOT NULL AND LTRIM(RTRIM(@horario)) = '' 
-        SET @error = @error + 'El horario no puede estar vacÌo. ';
+        SET @error = @error + 'El horario no puede estar vac√≠o. ';
     	
 	-- Informar errores si los hubo
     IF @error <> ''
         RAISERROR(@error, 16, 1);
     ELSE
 	BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbSucursal.Sucursal
         SET 
             ciudad = COALESCE(@ciudad, ciudad),
@@ -275,25 +276,25 @@ BEGIN
         SET @error = @error + 'No existe un empleado con el legajo especificado. ';
     
     IF @cuil IS NOT NULL AND dbSistema.ValidarCUIL(@cuil) = 0
-        SET @error = @error + 'El CUIL es inv·lido. ';
+        SET @error = @error + 'El CUIL es inv√°lido. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
-        SET @error = @error + 'El nombre no puede estar vacÌo. ';
+        SET @error = @error + 'El nombre no puede estar vac√≠o. ';
     
     IF @apellido IS NOT NULL AND LTRIM(RTRIM(@apellido)) = ''
-        SET @error = @error + 'El apellido no puede estar vacÌo. ';
+        SET @error = @error + 'El apellido no puede estar vac√≠o. ';
     
     IF @emailPersonal IS NOT NULL AND LTRIM(RTRIM(@emailPersonal)) = ''
-        SET @error = @error + 'El email personal no puede estar vacÌo. ';
+        SET @error = @error + 'El email personal no puede estar vac√≠o. ';
     
     IF @emailEmpresa IS NOT NULL AND LTRIM(RTRIM(@emailEmpresa)) = ''
-        SET @error = @error + 'El email de la empresa no puede estar vacÌo. ';
+        SET @error = @error + 'El email de la empresa no puede estar vac√≠o. ';
     
     IF @turno IS NOT NULL AND @turno NOT IN ('TM', 'TT', 'Jornada completa')
         SET @error = @error + 'El turno debe ser TM, TT o Jornada completa. ';
     
     IF @cargo IS NOT NULL AND LTRIM(RTRIM(@cargo)) = ''
-        SET @error = @error + 'El cargo no puede estar vacÌo. ';
+        SET @error = @error + 'El cargo no puede estar vac√≠o. ';
     
     IF @idSucursal IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbSucursal.Sucursal WHERE idSucursal = @idSucursal)
         SET @error = @error + 'No existe una sucursal con el ID especificado. ';
@@ -303,11 +304,11 @@ BEGIN
         RAISERROR(@error, 16, 1);
     ELSE
     BEGIN
-		-- Abrir la llave simÈtrica
+		-- Abrir la llave sim√©trica
         OPEN SYMMETRIC KEY EmpleadoLlave
             DECRYPTION BY CERTIFICATE CertificadoEmpleado;
 
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbEmpleado.Empleado
         SET 
             cuil = COALESCE(ENCRYPTBYKEY(KEY_GUID('EmpleadoLlave'), CONVERT(VARBINARY, @cuil)), cuil),
@@ -322,7 +323,7 @@ BEGIN
             idSucursal = COALESCE(@idSucursal, idSucursal)
         WHERE legajoEmpleado = @legajoEmpleado;
 
-        -- Cerrar la llave simÈtrica
+        -- Cerrar la llave sim√©trica
         CLOSE SYMMETRIC KEY EmpleadoLlave;
     END
 END
@@ -361,7 +362,7 @@ BEGIN
         RAISERROR(@error, 16, 1);
     ELSE
     BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbVenta.Factura
         SET 
             tipoFactura = COALESCE(@tipoFactura, tipoFactura),
@@ -387,17 +388,17 @@ BEGIN
 
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM dbVenta.MetodoPago WHERE idMetodoPago = @idMetodoPago)
-        SET @error = @error + 'No existe un mÈtodo de pago con el ID especificado. ';
+        SET @error = @error + 'No existe un m√©todo de pago con el ID especificado. ';
     
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
-        SET @error = @error + 'El nombre no puede estar vacÌo. ';
+        SET @error = @error + 'El nombre no puede estar vac√≠o. ';
     
 	-- Informar errores si los hubo
     IF @error <> ''
         RAISERROR(@error, 16, 1);
     ELSE
     BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbVenta.MetodoPago
         SET 
         nombre = @nombre
@@ -444,7 +445,7 @@ BEGIN
         RAISERROR(@error, 16, 1);
     ELSE
     BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbVenta.Venta
         SET 
             fecha = COALESCE(@fecha, fecha),
@@ -491,7 +492,7 @@ BEGIN
         RAISERROR(@error, 16, 1);
     ELSE
     BEGIN
-        -- ActualizaciÛn
+        -- Actualizaci√≥n
         UPDATE dbVenta.DetalleVenta
         SET 
             idProducto = COALESCE(@idProducto, idProducto),
